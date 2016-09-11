@@ -1,0 +1,10 @@
+[package]
+name = "wydyd"
+version = "0.1.0"
+authors = ["notkild <notkild@gmail.com>"]
+
+[dependencies]
+
+[lib]
+name="libwydyd"
+path="src/lib.rs"
