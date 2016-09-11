@@ -1,3 +1,4 @@
+use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::thread;
 
@@ -29,6 +30,30 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
     }
 }
 
-fn handle_client(stream: TcpStream) {
-    println!("==> Client connected {}", stream.local_addr().unwrap());
+pub fn handle_client(mut stream: TcpStream) {
+    let addr = stream.peer_addr().unwrap();
+    println!("==> Client connected {}", addr);
+    if !confirmation_process(&mut stream) {
+        return;
+    }
+
+    println!("==> Client disconnected {}", addr);
+}
+
+pub fn confirmation_process(stream: &mut TcpStream) -> bool {
+    let addr = stream.peer_addr().unwrap();
+    println!("{} ==> Receiving confirmation...", addr);
+    let mut confirmation = [0; 4];
+    stream.read(&mut confirmation).unwrap();
+    let confirmation = confirmation.to_vec();
+    let confirmation = String::from_utf8(confirmation).unwrap();
+    match confirmation == "WYDY" {
+        true => println!("{} ==> Confirmation received", addr),
+        false => {
+            println!("{} ==> Wrong confirmation: {}", addr, confirmation);
+            return false;
+        }
+    }
+    stream.write("WYDY".as_bytes()).unwrap();
+    true
 }
