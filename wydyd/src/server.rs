@@ -17,10 +17,18 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => {}
+            Ok(stream) => {
+                thread::spawn(move || {
+                    handle_client(stream);
+                });
+            }
             Err(e) => {
-                println!("Client tried to connect: {}", e);
+                println!("!!! Client tried to connect: {}", e);
             }
         }
     }
+}
+
+fn handle_client(stream: TcpStream) {
+    println!("==> Client connected {}", stream.local_addr().unwrap());
 }
