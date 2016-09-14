@@ -62,13 +62,12 @@ pub fn confirmation_process(stream: &mut TcpStream) -> bool {
     stream.read(&mut confirmation).unwrap();
     let confirmation = confirmation.to_vec();
     let confirmation = String::from_utf8(confirmation).unwrap();
-    match confirmation == "WYDY" {
-        true => println!("[{}] Confirmation received", addr),
-        false => {
-            println!("[{}] Wrong confirmation: {}", addr, confirmation);
-            return false;
-        }
+    if confirmation == "WYDY" {
+        println!("[{}] Confirmation received", addr);
+    } else {
+        println!("[{}] Wrong confirmation: {}", addr, confirmation);
+        return false;
     }
-    stream.write("WYDY".as_bytes()).unwrap();
+    stream.write(b"WYDY").unwrap();
     true
 }

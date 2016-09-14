@@ -1,44 +1,86 @@
 use config::config_dir;
 use std::process::Command;
 
-pub struct Vars {
-    browser: String,
-    editor: String,
+struct Var {
+    name: String,
+    value: String,
 }
 
+impl Var {
+    pub fn new<S: Into<String>>(name: S, value: S) -> Var {
+        Var {
+            name: name.into(),
+            value: value.into(),
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+
+    pub fn set_value<S: Into<String>>(&mut self, new_value: S) {
+        self.value = new_value.into();
+    }
+}
+
+/// A structure that holds all variables.
+pub struct Vars(Vec<Var>);
+
 impl Vars {
-    pub fn browser(&self) -> &str {
-        &self.browser
+    /// Load all vars from file
+    pub fn load() -> Vars {
+        unimplemented!()
     }
 
-    pub fn editor(&self) -> &str {
-        &self.editor
+    /// Search for the variable with this name and return is index.
+    /// Return None if the value can't be find.
+    fn index_of<S: Into<String>>(&self, name: S) -> Option<usize> {
+        let name_l = name.into().to_lowercase();
+        for (i, var) in self.0.iter().enumerate() {
+            if name_l == var.name() {
+                return Some(i);
+            }
+        }
+        None
     }
 
-    pub fn set_browser(&mut self, value: String) {
-        self.browser = value;
+    /// Return the value of the variable with this name.
+    pub fn value_of<S: Into<String>>(&self, name: S) -> Option<String> {
+        let idx = self.index_of(name);
+        match idx {
+            Some(i) => Some(self.0[i].value().to_string()),
+            None => None,
+        }
     }
 
-    pub fn set_editor(&mut self, value: String) {
-        self.editor = value;
+    /// Set the value of the variable with this name.
+    pub fn set_var(&mut self, name: &str, value: &str) {
+        let idx = self.index_of(name);
+        if let Some(i) = idx {
+            self.0[i].set_value(value);
+        }
     }
 }
 
 impl Default for Vars {
     fn default() -> Vars {
-        Vars {
-            browser: "firefox".to_string(),
-            editor: "vi".to_string(),
-        }
+        let mut vars = Vec::new();
+        vars.push(Var::new("browser", "firefox"));
+        vars.push(Var::new("editor", "vi"));
+        Vars(vars)
     }
 }
 
 /// Start the editor to edit wydy variables.
-pub fn edit_variables(vars: Vars) {
+pub fn edit_variables(editor: String) {
     let config_dir = config_dir();
     let env_file = config_dir.join("vars");
-    match Command::new(vars.editor()).arg(env_file.display().to_string()).output() {
+    match Command::new(&editor).arg(env_file.display().to_string()).output() {
         Ok(_) => {}
-        Err(e) => println!("Error on executing {}: {}", vars.editor(), e),
+        Err(e) => println!("Error on executing {}: {}", editor, e),
     }
 }

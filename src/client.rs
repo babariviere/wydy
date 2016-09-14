@@ -16,7 +16,7 @@ pub fn connect_to_server<A: ToSocketAddrs>(addr: A) -> Result<TcpStream, String>
 
 /// Send and receive confirmation process after connection.
 pub fn confirmation_process(stream: &mut TcpStream) -> bool {
-    stream.write("WYDY".as_bytes()).unwrap();
+    stream.write(b"WYDY").unwrap();
     let mut confirmation = [0; 4];
     stream.read(&mut confirmation).unwrap();
     let confirmation = confirmation.to_vec();

@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 
 pub fn config_dir() -> PathBuf {
-    let dir_str = match env::var("XDG_HOME_DIR") {
+    let dir_str = match env::var("XDG_CONFIG_HOME") {
         Ok(d) => format!("{}/wydy", d),
         Err(_) => {
             let home = env::var("HOME").unwrap();
