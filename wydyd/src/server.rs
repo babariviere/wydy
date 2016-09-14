@@ -1,3 +1,5 @@
+use config::*;
+use std::io;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::thread;
@@ -15,6 +17,20 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
             return;
         }
     };
+
+    thread::spawn(|| {
+        println!("Press \'q\' + <Return> to close the server");
+        loop {
+            let mut stdin = io::stdin();
+            let mut recv = [0];
+            stdin.read(&mut recv).unwrap();
+            let recv = recv[0] as char;
+            if recv == 'q' {
+                println!("==> Server is closing...");
+                ::std::process::exit(0);
+            }
+        }
+    });
 
     for stream in listener.incoming() {
         match stream {
@@ -42,15 +58,15 @@ pub fn handle_client(mut stream: TcpStream) {
 
 pub fn confirmation_process(stream: &mut TcpStream) -> bool {
     let addr = stream.peer_addr().unwrap();
-    println!("{} ==> Receiving confirmation...", addr);
+    println!("[{}] Receiving confirmation...", addr);
     let mut confirmation = [0; 4];
     stream.read(&mut confirmation).unwrap();
     let confirmation = confirmation.to_vec();
     let confirmation = String::from_utf8(confirmation).unwrap();
     match confirmation == "WYDY" {
-        true => println!("{} ==> Confirmation received", addr),
+        true => println!("[{}] Confirmation received", addr),
         false => {
-            println!("{} ==> Wrong confirmation: {}", addr, confirmation);
+            println!("[{}] Wrong confirmation: {}", addr, confirmation);
             return false;
         }
     }
