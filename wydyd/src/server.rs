@@ -1,4 +1,3 @@
-use config::*;
 use std::io;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
