@@ -1,4 +1,5 @@
 use std::env;
+use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 
 pub fn config_dir() -> PathBuf {
@@ -16,5 +17,9 @@ pub fn config_dir() -> PathBuf {
         }
     };
 
-    Path::new(&dir_str).to_path_buf()
+    let path = Path::new(&dir_str).to_path_buf();
+    if !path.exists() {
+        create_dir_all(&path).unwrap();
+    }
+    path
 }
