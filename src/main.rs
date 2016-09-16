@@ -1,6 +1,7 @@
 extern crate libwydyc;
-use libwydyc::client::connect_to_server;
+use libwydyc::client::*;
 
 fn main() {
-    connect_to_server("127.0.0.1:9654").unwrap();
+    let mut server = connect_to_server("127.0.0.1:9654").unwrap();
+    send_command(&mut server, "edit".to_string());
 }

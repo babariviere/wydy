@@ -1,5 +1,5 @@
 use std::io;
-use std::io::{Read, Write};
+use std::io::{BufRead, Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::thread;
 
@@ -50,6 +50,24 @@ pub fn handle_client(mut stream: TcpStream) {
     println!("==> Client connected {}", addr);
     if !confirmation_process(&mut stream) {
         return;
+    }
+
+    loop {
+        // TODO remove unwrap
+        // TODO use bufreader
+        // Receive command
+        let mut command = String::new();
+        {
+            let mut reader = io::BufReader::new(&mut stream);
+            reader.read_line(&mut command).unwrap();
+        }
+        let command = command;
+        println!("[{}] {}", addr, command);
+
+        // Only for testing
+        stream.write(b"2\n").unwrap();
+        stream.write(b"edit command\n").unwrap();
+        stream.write(b"edit vars\n").unwrap();
     }
 
     println!("==> Client disconnected {}", addr);
