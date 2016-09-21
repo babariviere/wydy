@@ -25,11 +25,17 @@ pub fn confirmation_process(stream: &mut TcpStream) -> bool {
     confirmation == "WYDY"
 }
 
+/// Send presence to continue communication with the server 
+pub fn send_presence(stream: &mut TcpStream) {
+    stream.write(&[1]).unwrap();
+}
+
 /// Send a command to the server
 pub fn send_command(stream: &mut TcpStream, command: String) -> String {
     // TODO change string to a result of the command
     // TODO use bufreader
     // TODO replace unwrap by a match
+    send_presence(stream);
     stream.write(command.as_bytes()).unwrap();
     stream.write(b"\n").unwrap();
     // Receive number of options

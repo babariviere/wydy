@@ -56,6 +56,11 @@ pub fn handle_client(mut stream: TcpStream) {
         // TODO remove unwrap
         // TODO use bufreader
         // Receive command
+        let mut presence = [0];
+        stream.read(&mut presence).unwrap();
+        if presence[0] != 1 {
+            break;
+        }
         let mut command = String::new();
         {
             let mut reader = io::BufReader::new(&mut stream);
