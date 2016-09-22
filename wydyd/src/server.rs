@@ -1,3 +1,4 @@
+use command::*;
 use std::io;
 use std::io::{BufRead, Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
@@ -67,7 +68,12 @@ pub fn handle_client(mut stream: TcpStream) {
             reader.read_line(&mut command).unwrap();
         }
         let command = command;
+        // Only for verbose
         println!("[{}] {}", addr, command);
+        let commands = parse_command(command);
+        for command in commands {
+            println!("[{}] {}", addr, command.desc());
+        }
 
         // Only for testing
         stream.write(b"2\n").unwrap();
