@@ -1,8 +1,8 @@
 use std::process::Command;
 
 /// Represent a wydy command 
-/// command var is the command to execute, ex: 'vi src/command.rs'
-/// desc var is the description, ex: edit file "src/command.rs"
+/// command var is the command to execute, ej: vi src/command.rs
+/// desc var is the description, ej: edit file "src/command.rs"
 pub struct WCommand {
     command: String,
     desc: String,
@@ -14,6 +14,10 @@ impl WCommand {
             command: command.into(),
             desc: desc.into(),
         }
+    }
+
+    pub fn command(&self) -> &str {
+        &self.command
     }
 
     pub fn desc(&self) -> &str {
@@ -30,8 +34,8 @@ impl WCommand {
 }
 
 /// Parse one command and return wydy command 
-/// ex: 
-/// command = "edit update_all
+/// ej: 
+/// command = "edit update_all"
 /// There will be two result
 /// [1] edit file update_all
 /// [2] search for "edit update_all"
@@ -41,18 +45,22 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
     match command_split.next() {
         Some("search") => {
             // TODO fix attached string => no space
-            let search = command_split.collect::<String>();
+            let search = string_with_space(command_split);
             let command = web_search(search);
             result.push(command);
         }
         Some(s) => {
-            let search = format!("{} {}", s, command_split.collect::<String>());
+            let search = format!("{} {}", s, string_with_space(command_split));
             let command = web_search(search);
             result.push(command);
         }
         _ => {}
     }
     result
+}
+
+fn string_with_space(splitted: ::std::str::SplitWhitespace) -> String {
+    splitted.map(|x| format!("{} ", x)).collect()
 }
 
 fn web_search(search: String) -> WCommand {

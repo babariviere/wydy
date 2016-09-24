@@ -69,20 +69,49 @@ pub fn handle_client(mut stream: TcpStream) {
         }
         let command = command;
         // Only for verbose
-        println!("[{}] {}", addr, command);
+        print!("[{}] {}", addr, command);
         let commands = parse_command(command);
-        for command in commands {
+        for command in &commands {
             println!("[{}] {}", addr, command.desc());
         }
 
-        // Only for testing
-        stream.write(b"2\n").unwrap();
-        stream.write(b"edit command\n").unwrap();
-        stream.write(b"edit vars\n").unwrap();
+        let action = send_command_response(&mut stream, &commands);
+        match action {
+            1 => {
+                let send = format!("executing \"{}\"\n", commands[0].command());
+                stream.write(send.as_bytes()).unwrap();
+            }
+            2 => {
+                // TODO send choices
+            }
+            0 => break,
+            _ => {}
+        }
     }
 
     println!("==> Client disconnected {}", addr);
 }
+
+/// Send response to the command that the server receive
+/// If the return value then
+fn send_command_response(stream: &mut TcpStream, commands: &Vec<WCommand>) -> u8 {
+    match commands.len() {
+        1 => {
+            stream.write(&[1]).unwrap();
+            1
+        }
+        n if n > 1 => {
+            stream.write(&[2]).unwrap();
+            2
+        }
+        _ => {
+            stream.write(&[u8::max_value()]).unwrap();
+            0
+        }
+    }
+}
+
+
 
 pub fn confirmation_process(stream: &mut TcpStream) -> bool {
     let addr = stream.peer_addr().unwrap();
