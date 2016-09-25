@@ -43,21 +43,21 @@ impl WCommand {
 /// [1] edit file update_all
 /// [2] search for "edit update_all"
 pub fn parse_command(command: String) -> Vec<WCommand> {
+    let command = command.trim().to_string();
+    let mut command_clone = command.clone();
     let mut command_split = command.split_whitespace();
     let mut result = Vec::new();
     match command_split.next() {
-        Some("search") => {
+        Some("search ") => {
             // TODO fix attached string => no space
-            let search = string_with_space(command_split);
+            let search = command_clone.drain(7..).collect();
             let command = web_search(search);
             result.push(command);
         }
-        Some("open") if cfg!(feature = "url-check") == true => {
-            println!("OPEN");
-        }
-        Some(s) => {
-            let search = format!("{} {}", s, string_with_space(command_split));
-            let command = web_search(search);
+        #[cfg(feature="all")]
+        Some("open ") => {}
+        Some(_) => {
+            let command = web_search(command_clone);
             result.push(command);
         }
         _ => {}
@@ -65,12 +65,9 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
     result
 }
 
-fn string_with_space(splitted: ::std::str::SplitWhitespace) -> String {
-    splitted.map(|x| format!("{} ", x)).collect()
-}
-
 #[cfg(not(any(feature="url-check", feature="all")))]
 fn web_search(search: String) -> WCommand {
+    let search = search.replace(" ", "%20");
     WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search),
                   format!("search for {}", search))
 }
@@ -78,6 +75,7 @@ fn web_search(search: String) -> WCommand {
 #[cfg(any(feature="url-check", feature="all"))]
 fn web_search(search: String) -> WCommand {
     // TODO add variable for search engine
+    let search = search.replace(" ", "%20");
     let command = match ::url_check::is_url(&search) {
         true => {
             WCommand::new(format!("firefox {}", search),

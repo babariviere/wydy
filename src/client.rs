@@ -25,7 +25,7 @@ pub fn confirmation_process(stream: &mut TcpStream) -> bool {
     confirmation == "WYDY"
 }
 
-/// Send presence to continue communication with the server 
+/// Send presence to continue communication with the server
 pub fn send_presence(stream: &mut TcpStream) {
     stream.write(&[1]).unwrap();
 }
@@ -39,8 +39,9 @@ pub fn send_command(stream: &mut TcpStream, command: String) -> String {
     stream.write(b"\n").unwrap();
     // Receive number of options
     command_response(stream);
-    let code = receive_status(stream);
-    println!("Command executed with code {}", code);
+    // TODO get command response and do something from it
+    // let code = receive_status(stream);
+    // println!("Command executed with code {}", code);
     "Everything run smoothly".to_string()
 }
 
@@ -51,15 +52,18 @@ fn command_response(stream: &mut TcpStream) {
     match response[0] {
         1 => {
             // Server is executing the command
-           let mut response = String::new();
-           reader.read_line(&mut response).unwrap();
-           print!("{}", response); 
+            let mut response = String::new();
+            reader.read_line(&mut response).unwrap();
+            print!("{}", response);
         }
         2 => {
             // There is multiple command, server needs to receive the choice
         }
         _ => {
             // Invalid command
+            println!("Please, run a valid command");
+            println!("Type 'list commands' to get the list of all commands");
+            return;
         }
     }
 }
