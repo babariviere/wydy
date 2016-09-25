@@ -69,13 +69,13 @@ fn string_with_space(splitted: ::std::str::SplitWhitespace) -> String {
     splitted.map(|x| format!("{} ", x)).collect()
 }
 
-#[cfg(not(feature="url-check"))]
+#[cfg(not(any(feature="url-check", feature="all")))]
 fn web_search(search: String) -> WCommand {
     WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search),
                   format!("search for {}", search))
 }
 
-#[cfg(feature="url-check")]
+#[cfg(any(feature="url-check", feature="all"))]
 fn web_search(search: String) -> WCommand {
     // TODO add variable for search engine
     let command = match ::url_check::is_url(&search) {

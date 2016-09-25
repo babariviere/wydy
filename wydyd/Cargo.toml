@@ -9,6 +9,7 @@ url = { version="*", optional=true }
 [features]
 default = []
 url-check = ["url"]
+all = ["url"]
 
 [lib]
 name = "libwydyd"
