@@ -49,7 +49,6 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
     let mut result = Vec::new();
     match command_split.next() {
         Some("search ") => {
-            // TODO fix attached string => no space
             let search = command_clone.drain(7..).collect();
             let command = web_search(search);
             result.push(command);

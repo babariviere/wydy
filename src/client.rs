@@ -59,6 +59,9 @@ fn command_response(stream: &mut TcpStream) {
         2 => {
             // There is multiple command, server needs to receive the choice
         }
+        3 => {
+            // Used to do output
+        }
         _ => {
             // Invalid command
             println!("Please, run a valid command");
