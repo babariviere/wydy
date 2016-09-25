@@ -39,6 +39,8 @@ pub fn send_command(stream: &mut TcpStream, command: String) -> String {
     stream.write(b"\n").unwrap();
     // Receive number of options
     command_response(stream);
+    let code = receive_status(stream);
+    println!("Command executed with code {}", code);
     "Everything run smoothly".to_string()
 }
 
@@ -60,4 +62,12 @@ fn command_response(stream: &mut TcpStream) {
             // Invalid command
         }
     }
+}
+
+fn receive_status(stream: &mut TcpStream) -> i64 {
+    let mut reader = io::BufReader::new(stream);
+    let mut status = String::new();
+    reader.read_line(&mut status).unwrap();
+    let status = status.trim();
+    status.parse().unwrap()
 }

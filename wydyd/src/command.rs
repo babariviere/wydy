@@ -1,6 +1,6 @@
 use std::process::Command;
 
-/// Represent a wydy command 
+/// Represent a wydy command
 /// command var is the command to execute, ej: vi src/command.rs
 /// desc var is the description, ej: edit file "src/command.rs"
 pub struct WCommand {
@@ -24,17 +24,20 @@ impl WCommand {
         &self.desc
     }
 
-    /// Run the command 
-    pub fn run(&self) {
+    /// Run the command
+    pub fn run(&self) -> i32 {
         let mut command_split = self.command.split_whitespace();
-        let command = command_split.next().unwrap();
+        let command_str = command_split.next().unwrap();
         let command_args = command_split.collect::<Vec<&str>>();
-        Command::new(command).args(command_args.as_slice()).spawn().unwrap();
+        let mut command = Command::new(command_str);
+        command.args(command_args.as_slice());
+        let output = command.output().unwrap();
+        output.status.code().unwrap_or(0)
     }
 }
 
-/// Parse one command and return wydy command 
-/// ej: 
+/// Parse one command and return wydy command
+/// ej:
 /// command = "edit update_all"
 /// There will be two result
 /// [1] edit file update_all
@@ -48,6 +51,9 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
             let search = string_with_space(command_split);
             let command = web_search(search);
             result.push(command);
+        }
+        Some("open") if cfg!(feature = "url-check") == true => {
+            println!("OPEN");
         }
         Some(s) => {
             let search = format!("{} {}", s, string_with_space(command_split));
@@ -63,7 +69,24 @@ fn string_with_space(splitted: ::std::str::SplitWhitespace) -> String {
     splitted.map(|x| format!("{} ", x)).collect()
 }
 
+#[cfg(not(feature="url-check"))]
 fn web_search(search: String) -> WCommand {
-            let command = WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search), format!("search for {}", search));
-            command
+    WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search),
+                  format!("search for {}", search))
+}
+
+#[cfg(feature="url-check")]
+fn web_search(search: String) -> WCommand {
+    // TODO add variable for search engine
+    let command = match ::url_check::is_url(&search) {
+        true => {
+            WCommand::new(format!("firefox {}", search),
+                          format!("opening url {}", search))
+        }
+        false => {
+            WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search),
+                          format!("search for {}", search))
+        }
+    };
+    command
 }

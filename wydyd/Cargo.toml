@@ -4,7 +4,12 @@ version = "0.1.0"
 authors = ["notkild <notkild@gmail.com>"]
 
 [dependencies]
+url = { version="*", optional=true }
+
+[features]
+default = []
+url-check = ["url"]
 
 [lib]
-name="libwydyd"
-path="src/lib.rs"
+name = "libwydyd"
+path = "src/lib.rs"

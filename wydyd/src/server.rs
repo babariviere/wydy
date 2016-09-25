@@ -18,6 +18,7 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
         }
     };
 
+    // Handle input to close the server
     thread::spawn(|| {
         println!("Press \'q\' + <Return> to close the server");
         loop {
@@ -32,6 +33,7 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
         }
     });
 
+    // Handle all new connections
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
@@ -80,6 +82,9 @@ pub fn handle_client(mut stream: TcpStream) {
             1 => {
                 let send = format!("executing \"{}\"\n", commands[0].command());
                 stream.write(send.as_bytes()).unwrap();
+                let code = commands[0].run();
+                stream.write(format!("{}\n", code).as_bytes()).unwrap();
+                continue;
             }
             2 => {
                 // TODO send choices
