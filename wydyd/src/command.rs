@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::process::Command;
 
 /// Represent a wydy command
@@ -49,30 +50,50 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
     let mut result = Vec::new();
     match command_split.next() {
         Some("search ") => {
-            let search = command_clone.drain(7..).collect();
-            let command = web_search(search);
+            let search = command_clone.drain(7..).collect::<String>();
+            let command = web_search(&search);
             result.push(command);
         }
         #[cfg(feature="all")]
         Some("open ") => {}
         Some(_) => {
-            let command = web_search(command_clone);
-            result.push(command);
+            // TODO check if it's a command
+            // If it's a command, choose from multiple choice
+            if is_command(&command_clone) {
+                let command = WCommand::new(command_clone.as_str(),
+                                            &format!("executing {}", &command_clone));
+                result.push(command);
+            }
+            let command_web = web_search(&command_clone);
+            result.push(command_web);
         }
         _ => {}
     }
     result
 }
 
+/// Check if command is in path
+fn is_command(command: &str) -> bool {
+    let path = ::std::env::var("PATH").unwrap();
+    let path_split = path.split(":");
+    for p in path_split {
+        let command_path = Path::new(p).join(command);
+        if command_path.exists() {
+            return true;
+        }
+    }
+    false
+}
+
 #[cfg(not(any(feature="url-check", feature="all")))]
-fn web_search(search: String) -> WCommand {
+fn web_search(search: &str) -> WCommand {
     let search = search.replace(" ", "%20");
     WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search),
                   format!("search for {}", search))
 }
 
 #[cfg(any(feature="url-check", feature="all"))]
-fn web_search(search: String) -> WCommand {
+fn web_search(search: &str) -> WCommand {
     // TODO add variable for search engine
     let search = search.replace(" ", "%20");
     let command = match ::url_check::is_url(&search) {

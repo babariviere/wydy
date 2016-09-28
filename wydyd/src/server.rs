@@ -76,6 +76,7 @@ pub fn handle_client(mut stream: TcpStream) {
             println!("[{}] {}", addr, command.desc());
         }
 
+        // TODO add option to send output
         let action = send_command_response(&mut stream, &commands);
         match action {
             1 => {

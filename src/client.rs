@@ -31,8 +31,8 @@ pub fn send_presence(stream: &mut TcpStream) {
 }
 
 /// Send a command to the server
-// TODO change string to a result of the command
-pub fn send_command(stream: &mut TcpStream, command: String) -> String {
+// TODO make this function return Result
+pub fn send_command(stream: &mut TcpStream, command: String) {
     // TODO replace unwrap by a match
     send_presence(stream);
     stream.write(command.as_bytes()).unwrap();
@@ -42,7 +42,6 @@ pub fn send_command(stream: &mut TcpStream, command: String) -> String {
     // TODO get command response and do something from it
     // let code = receive_status(stream);
     // println!("Command executed with code {}", code);
-    "Everything run smoothly".to_string()
 }
 
 fn command_response(stream: &mut TcpStream) {
