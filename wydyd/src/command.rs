@@ -74,6 +74,7 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
 
 /// Check if command is in path
 fn is_command(command: &str) -> bool {
+    let command = command.split_whitespace().next().unwrap();
     let path = ::std::env::var("PATH").unwrap();
     let path_split = path.split(":");
     for p in path_split {
