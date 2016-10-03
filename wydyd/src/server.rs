@@ -59,42 +59,82 @@ pub fn handle_client(mut stream: TcpStream) {
         // TODO remove unwrap
         // Receive command
         let mut presence = [0];
-        stream.read(&mut presence).unwrap();
+        match stream.read(&mut presence) {
+            Ok(_) => {}
+            Err(e) => {
+                println!("!!! Can't receive presence: {}", e);
+                break;
+            }
+        };
         if presence[0] != 1 {
             break;
         }
         let mut command = String::new();
         {
             let mut reader = io::BufReader::new(&mut stream);
-            reader.read_line(&mut command).unwrap();
+            match reader.read_line(&mut command) {
+                Ok(_) => {}
+                Err(e) => {
+                    println!("!!! Can't receive command: {}", e);
+                    break;
+                }
+            };
         }
         let command = command;
         // Only for verbose
-        print!("[{}] {}", addr, command);
+        // print!("[{}] {}", addr, command);
         let commands = parse_command(command);
-        for command in &commands {
-            println!("[{}] {}", addr, command.desc());
-        }
 
         // TODO add option to send output
         let action = send_command_response(&mut stream, &commands);
+        let mut command = WCommand::new("", "");
         match action {
             1 => {
-                let send = format!("executing \"{}\"\n", commands[0].command());
-                stream.write(send.as_bytes()).unwrap();
-                let code = commands[0].run();
-                stream.write(format!("{}\n", code).as_bytes()).unwrap();
-                continue;
+                command = commands[0].clone();
             }
             2 => {
                 // TODO send choices
+                command = match handle_multiple_commands(&mut stream, commands) {
+                    Some(c) => c,
+                    None => break,
+                };
             }
             0 => break,
             _ => {}
         }
+        let send = format!("executing \"{}\"\n", command.command());
+        stream.write(send.as_bytes()).unwrap();
+        println!("[{}] {}", addr, command.desc());
+        let code = command.run();
+        stream.write(format!("{}\n", code).as_bytes()).unwrap();
     }
 
     println!("==> Client disconnected {}", addr);
+}
+
+/// Handle multiple commands
+fn handle_multiple_commands(stream: &mut TcpStream, commands: Vec<WCommand>) -> Option<WCommand> {
+    // Send choices
+    let num_commands = [commands.len() as u8];
+    match stream.write(&num_commands) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("!!! Can't send number of command: {}", e);
+            return None;
+        }
+    };
+    for command in &commands {
+        stream.write(format!("{}\n", command.desc()).as_bytes()).unwrap();
+    }
+    let mut response = [0];
+    stream.read(&mut response).unwrap_or(0);
+    let response = response[0] as usize;
+    if response >= 1 && response <= commands.len() {
+        Some(commands[response - 1].clone())
+    } else {
+        println!("Choose to exit");
+        None
+    }
 }
 
 /// Send response to the command that the server receive

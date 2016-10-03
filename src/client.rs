@@ -40,23 +40,19 @@ pub fn send_command(stream: &mut TcpStream, command: String) {
     // Receive number of options
     command_response(stream);
     // TODO get command response and do something from it
-    // let code = receive_status(stream);
-    // println!("Command executed with code {}", code);
 }
 
 fn command_response(stream: &mut TcpStream) {
     let mut response = [0];
     stream.read(&mut response).unwrap();
-    let mut reader = io::BufReader::new(stream);
     match response[0] {
         1 => {
             // Server is executing the command
-            let mut response = String::new();
-            reader.read_line(&mut response).unwrap();
-            print!("{}", response);
+            receive_running_command(stream);
         }
         2 => {
             // There is multiple command, server needs to receive the choice
+            handle_multiple_commands(stream);
         }
         3 => {
             // Used to do output
@@ -68,6 +64,63 @@ fn command_response(stream: &mut TcpStream) {
             return;
         }
     }
+}
+
+/// Handle multiple commands
+fn handle_multiple_commands(stream: &mut TcpStream) {
+    let commands = receive_commands(stream);
+    for (i, command) in commands.iter().enumerate() {
+        println!("[{}] {}", i + 1, command);
+    }
+    println!("[_] Exit");
+
+    // Read response
+    let stdin = io::stdin();
+    let mut lock = stdin.lock();
+    let mut input = String::new();
+    lock.read_line(&mut input).unwrap();
+    let input = input.trim();
+    let choice = match input.parse::<u8>() {
+        Ok(c) => c,
+        Err(e) => {
+            println!("Invalid input, exiting: {}", e);
+            u8::max_value()
+        }
+    };
+    stream.write(&[choice]).unwrap();
+    let choice = choice as usize;
+    if choice >= 1 && choice <= commands.len() {
+        receive_running_command(stream);
+    } else {
+        println!("Exiting...");
+    }
+}
+
+fn receive_commands(stream: &mut TcpStream) -> Vec<String> {
+    let mut num_commands = [0];
+    stream.read(&mut num_commands).unwrap();
+    let mut commands = Vec::new();
+    let mut reader = io::BufReader::new(stream);
+    for _ in 0..num_commands[0] {
+        let mut read = String::new();
+        reader.read_line(&mut read).unwrap();
+        let read = read.trim().to_string();
+        commands.push(read);
+    }
+    commands
+}
+
+fn receive_running_command(stream: &mut TcpStream) {
+    receive_running_command_desc(stream);
+    let code = receive_status(stream);
+    println!("Command executed with code {}", code);
+}
+
+fn receive_running_command_desc(stream: &mut TcpStream) {
+    let mut response = String::new();
+    let mut reader = io::BufReader::new(stream);
+    reader.read_line(&mut response).unwrap();
+    print!("{}", response);
 }
 
 fn receive_status(stream: &mut TcpStream) -> i64 {

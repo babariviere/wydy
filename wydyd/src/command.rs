@@ -4,6 +4,7 @@ use std::process::Command;
 /// Represent a wydy command
 /// command var is the command to execute, ej: vi src/command.rs
 /// desc var is the description, ej: edit file "src/command.rs"
+#[derive(Clone)]
 pub struct WCommand {
     command: String,
     desc: String,
@@ -74,8 +75,11 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
 
 /// Check if command is in path
 fn is_command(command: &str) -> bool {
-    let command = command.split_whitespace().next().unwrap();
-    let path = ::std::env::var("PATH").unwrap();
+    let command = match command.split_whitespace().next() {
+        Some(c) => c,
+        None => command,
+    };
+    let path = env!("PATH");
     let path_split = path.split(":");
     for p in path_split {
         let command_path = Path::new(p).join(command);
