@@ -27,28 +27,37 @@ pub fn confirmation_process(stream: &mut TcpStream) -> bool {
 
 /// Send presence to continue communication with the server
 pub fn send_presence(stream: &mut TcpStream) {
-    stream.write(&[1]).unwrap();
+    match stream.write(&[1]) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("!!! Can't send presence: {}", e);
+            ::std::process::exit(1);
+        }
+    };
 }
 
 /// Send a command to the server
-// TODO make this function return Result
 pub fn send_command(stream: &mut TcpStream, command: String) {
-    // TODO replace unwrap by a match
     send_presence(stream);
-    stream.write(command.as_bytes()).unwrap();
-    stream.write(b"\n").unwrap();
-    // Receive number of options
-    command_response(stream);
-    // TODO get command response and do something from it
+    let command = format!("{}\n", command);
+    match stream.write(command.as_bytes()) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("!!! Can't send command: {}", e);
+            ::std::process::exit(1);
+        }
+    };
 }
 
-fn command_response(stream: &mut TcpStream) {
+/// Receive command response.
+/// Read response and make a choice based on it.
+pub fn command_response(stream: &mut TcpStream) {
     let mut response = [0];
     stream.read(&mut response).unwrap();
     match response[0] {
         1 => {
             // Server is executing the command
-            receive_running_command(stream);
+            receive_command_process(stream);
         }
         2 => {
             // There is multiple command, server needs to receive the choice
@@ -59,6 +68,7 @@ fn command_response(stream: &mut TcpStream) {
         }
         _ => {
             // Invalid command
+            // Is this reachable?
             println!("Please, run a valid command");
             println!("Type 'list commands' to get the list of all commands");
             return;
@@ -90,15 +100,19 @@ fn handle_multiple_commands(stream: &mut TcpStream) {
     stream.write(&[choice]).unwrap();
     let choice = choice as usize;
     if choice >= 1 && choice <= commands.len() {
-        receive_running_command(stream);
+        receive_command_process(stream);
     } else {
         println!("Exiting...");
     }
 }
 
+/// Receive all the commands from the server
 fn receive_commands(stream: &mut TcpStream) -> Vec<String> {
+    // Receive number of commands
     let mut num_commands = [0];
     stream.read(&mut num_commands).unwrap();
+
+    // Receive all the commands
     let mut commands = Vec::new();
     let mut reader = io::BufReader::new(stream);
     for _ in 0..num_commands[0] {
@@ -110,19 +124,23 @@ fn receive_commands(stream: &mut TcpStream) -> Vec<String> {
     commands
 }
 
-fn receive_running_command(stream: &mut TcpStream) {
-    receive_running_command_desc(stream);
+/// Receive command process, description + status code
+fn receive_command_process(stream: &mut TcpStream) {
+    let cmd_desc = receive_running_command_desc(stream);
+    print!("{}", cmd_desc);
     let code = receive_status(stream);
     println!("Command executed with code {}", code);
 }
 
-fn receive_running_command_desc(stream: &mut TcpStream) {
+/// Receive description of the running command
+fn receive_running_command_desc(stream: &mut TcpStream) -> String {
     let mut response = String::new();
     let mut reader = io::BufReader::new(stream);
     reader.read_line(&mut response).unwrap();
-    print!("{}", response);
+    response
 }
 
+/// Receive the status code of the running command
 fn receive_status(stream: &mut TcpStream) -> i64 {
     let mut reader = io::BufReader::new(stream);
     let mut status = String::new();

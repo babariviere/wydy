@@ -7,4 +7,5 @@ fn main() {
     args.next();
     let command = args.map(|x| format!("{} ", x)).collect();
     send_command(&mut server, command);
+    command_response(&mut server);
 }
