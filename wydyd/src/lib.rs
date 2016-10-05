@@ -1,5 +1,5 @@
-#[cfg(any(feature="url-check", feature="all"))]
-extern crate url;
+#[cfg(any(feature="url_check",feature="all"))]
+extern crate verex;
 
 pub mod command;
 pub mod config;

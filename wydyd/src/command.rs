@@ -52,8 +52,7 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
     match command_split.next() {
         Some("search ") => {
             let search = command_clone.drain(7..).collect::<String>();
-            let command = web_search(&search);
-            result.push(command);
+            web_search(&search, &mut result);
         }
         #[cfg(feature="all")]
         Some("open ") => {}
@@ -65,8 +64,7 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
                                             &format!("executing {}", &command_clone));
                 result.push(command);
             }
-            let command_web = web_search(&command_clone);
-            result.push(command_web);
+            web_search(&command_clone, &mut result);
         }
         _ => {}
     }
@@ -91,25 +89,23 @@ fn is_command(command: &str) -> bool {
 }
 
 #[cfg(not(any(feature="url-check", feature="all")))]
-fn web_search(search: &str) -> WCommand {
+fn web_search(search: &str, commands: &mut Vec<WCommand>) {
     let search = search.replace(" ", "%20");
-    WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search),
-                  format!("search for {}", search))
+    let command = WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search),
+                                format!("search for {}", search));
+    commands.push(command);
 }
 
 #[cfg(any(feature="url-check", feature="all"))]
-fn web_search(search: &str) -> WCommand {
+fn web_search(search: &str, commands: &mut Vec<WCommand>) {
     // TODO add variable for search engine
     let search = search.replace(" ", "%20");
-    let command = match ::url_check::is_url(&search) {
-        true => {
-            WCommand::new(format!("firefox {}", search),
-                          format!("opening url {}", search))
-        }
-        false => {
-            WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search),
-                          format!("search for {}", search))
-        }
-    };
-    command
+    if ::url_check::is_url(&search) {
+        let command = WCommand::new(format!("firefox {}", search),
+                                    format!("opening url {}", search));
+        commands.push(command);
+    }
+    let command = WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search),
+                                format!("search for {}", search));
+    commands.push(command);
 }
