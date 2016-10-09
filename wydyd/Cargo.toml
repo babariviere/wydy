@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["notkild <notkild@gmail.com>"]
 
 [dependencies]
+fern = "*"
+log = "*"
+time = "*"
 verex = {version = "*", optional = true}
 
 [features]

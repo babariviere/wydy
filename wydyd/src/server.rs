@@ -5,29 +5,29 @@ use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::thread;
 
 pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
-    println!("==> Starting server...");
+    info!("==> Starting server...");
     let listener = match TcpListener::bind(addr) {
         Ok(l) => {
-            println!("==> Server initialized with address {}.",
-                     l.local_addr().unwrap());
+            info!("Server initialized with address {}.",
+                  l.local_addr().unwrap());
             l
         }
         Err(e) => {
-            println!("!!! Error when initializing server: {}", e);
+            error!("Cannot initialize server: {}", e);
             return;
         }
     };
 
     // Handle input to close the server
     thread::spawn(|| {
-        println!("Press \'q\' + <Return> to close the server");
+        info!("Press \'q\' + <Return> to close the server");
         loop {
             let mut stdin = io::stdin();
             let mut recv = [0];
             stdin.read(&mut recv).unwrap();
             let recv = recv[0] as char;
             if recv == 'q' {
-                println!("==> Server is closing...");
+                info!("Server is closing...");
                 ::std::process::exit(0);
             }
         }
@@ -42,7 +42,7 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
                 });
             }
             Err(e) => {
-                println!("!!! Client tried to connect: {}", e);
+                error!("Client tried to connect {}.", e);
             }
         }
     }
@@ -50,7 +50,7 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
 
 pub fn handle_client(mut stream: TcpStream) {
     let addr = stream.peer_addr().unwrap();
-    println!("==> Client connected {}", addr);
+    info!("Client connected {}", addr);
     if !confirmation_process(&mut stream) {
         return;
     }
@@ -62,7 +62,7 @@ pub fn handle_client(mut stream: TcpStream) {
         match stream.read(&mut presence) {
             Ok(_) => {}
             Err(e) => {
-                println!("!!! Can't receive presence: {}", e);
+                error!("Can't receive presence: {}", e);
                 break;
             }
         };
@@ -75,7 +75,7 @@ pub fn handle_client(mut stream: TcpStream) {
             match reader.read_line(&mut command) {
                 Ok(_) => {}
                 Err(e) => {
-                    println!("!!! Can't receive command: {}", e);
+                    error!("Can't receive command: {}", e);
                     break;
                 }
             };
@@ -104,12 +104,12 @@ pub fn handle_client(mut stream: TcpStream) {
         }
         let send = format!("executing \"{}\"\n", command.command());
         stream.write(send.as_bytes()).unwrap();
-        println!("[{}] {}", addr, command.desc());
+        debug!("[{}] {}", addr, command.desc());
         let code = command.run();
         stream.write(format!("{}\n", code).as_bytes()).unwrap();
     }
 
-    println!("==> Client disconnected {}", addr);
+    info!("Client disconnected {}", addr);
 }
 
 /// Handle multiple commands
@@ -119,7 +119,7 @@ fn handle_multiple_commands(stream: &mut TcpStream, commands: Vec<WCommand>) -> 
     match stream.write(&num_commands) {
         Ok(_) => {}
         Err(e) => {
-            println!("!!! Can't send number of command: {}", e);
+            error!("Can't send number of command: {}", e);
             return None;
         }
     };
@@ -132,7 +132,8 @@ fn handle_multiple_commands(stream: &mut TcpStream, commands: Vec<WCommand>) -> 
     if response >= 1 && response <= commands.len() {
         Some(commands[response - 1].clone())
     } else {
-        println!("Choose to exit");
+        info!("Choose to exit");
+        debug!("response: {}", response);
         None
     }
 }
@@ -160,15 +161,15 @@ fn send_command_response(stream: &mut TcpStream, commands: &Vec<WCommand>) -> u8
 
 pub fn confirmation_process(stream: &mut TcpStream) -> bool {
     let addr = stream.peer_addr().unwrap();
-    println!("[{}] Receiving confirmation...", addr);
+    info!("[{}] Receiving confirmation...", addr);
     let mut confirmation = [0; 4];
     stream.read(&mut confirmation).unwrap();
     let confirmation = confirmation.to_vec();
     let confirmation = String::from_utf8(confirmation).unwrap();
     if confirmation == "WYDY" {
-        println!("[{}] Confirmation received", addr);
+        info!("[{}] Confirmation received", addr);
     } else {
-        println!("[{}] Wrong confirmation: {}", addr, confirmation);
+        error!("[{}] Wrong confirmation: {}", addr, confirmation);
         return false;
     }
     stream.write(b"WYDY").unwrap();
