@@ -27,19 +27,12 @@ pub fn init_logging(log_level: u8) {
 
     let logger_config = fern::DispatchConfig {
         format: Box::new(|msg: &str, level: &log::LogLevel, location: &log::LogLocation| {
+            let mut s = String::new();
             if *level == log::LogLevel::Debug || *level == log::LogLevel::Trace {
-                format!("[{}][{}] {}:{}: {}",
-                        time::now().strftime("%Y-%m-%d][%H:%M:%S").unwrap(),
-                        level,
-                        location.file(),
-                        location.line(),
-                        msg)
-            } else {
-                format!("[{}][{}]: {}",
-                        time::now().strftime("%Y-%m-%d][%H:%M:%S").unwrap(),
-                        level,
-                        msg)
+                s = format!("{}:{}\n", location.file(), location.line());
             }
+            s.push_str(&format!("[{}]: {}", level, msg));
+            s
         }),
         output: vec![fern::OutputConfig::file(&dir), fern::OutputConfig::stdout()],
         level: log_level,

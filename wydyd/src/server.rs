@@ -5,7 +5,7 @@ use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::thread;
 
 pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
-    info!("==> Starting server...");
+    info!("Starting server...");
     let listener = match TcpListener::bind(addr) {
         Ok(l) => {
             info!("Server initialized with address {}.",
