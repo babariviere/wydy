@@ -7,12 +7,7 @@ authors = ["notkild <notkild@gmail.com>"]
 fern = "*"
 log = "*"
 time = "*"
-verex = {version = "*", optional = true}
-
-[features]
-default = []
-url-check = ["verex"]
-all = ["verex"]
+verex = "*"
 
 [lib]
 name = "libwydyd"

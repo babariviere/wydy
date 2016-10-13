@@ -1,3 +1,5 @@
+use config::config_dir;
+use std::fs::{create_dir_all, File};
 use std::path::Path;
 use std::process::Command;
 
@@ -50,15 +52,24 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
     let mut command_split = command.split_whitespace();
     let mut result = Vec::new();
     match command_split.next() {
-        Some("search ") => {
+        Some("search") => {
             let search = command_clone.drain(7..).collect::<String>();
             web_search(&search, &mut result);
         }
-        #[cfg(feature="all")]
-        Some("open ") => {}
+        Some("open") => {
+            let search = command_clone.drain(5..).collect::<String>();
+            web_search(&search, &mut result);
+        }
+        Some("add") => {
+            match command_split.next() {
+                Some("script") => {
+                    let name = command_clone.drain(11..).collect::<String>();
+                    add_script(&name);
+                }
+                _ => {}
+            }
+        }
         Some(_) => {
-            // TODO check if it's a command
-            // If it's a command, choose from multiple choice
             if is_command(&command_clone) {
                 let command = WCommand::new(command_clone.as_str(),
                                             &format!("executing {}", &command_clone));
@@ -69,6 +80,18 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
         _ => {}
     }
     result
+}
+
+/// Add a script
+fn add_script(name: &str) {
+    let mut name = name.replace("_", "/");
+    let idx = name.rfind("/").unwrap_or(0);
+    let dirs = name.drain(..idx + 1).collect::<String>();
+    let path = config_dir().join("scripts").join(&dirs);
+    create_dir_all(&path).unwrap();
+    let path = path.join(&name);
+    debug!("{}", path.display());
+    File::create(&path).unwrap();
 }
 
 /// Check if command is in path
@@ -88,15 +111,6 @@ fn is_command(command: &str) -> bool {
     false
 }
 
-#[cfg(not(any(feature="url-check", feature="all")))]
-fn web_search(search: &str, commands: &mut Vec<WCommand>) {
-    let search = search.replace(" ", "%20");
-    let command = WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search),
-                                format!("search for {}", search));
-    commands.push(command);
-}
-
-#[cfg(any(feature="url-check", feature="all"))]
 fn web_search(search: &str, commands: &mut Vec<WCommand>) {
     // TODO add variable for search engine
     let search = search.replace(" ", "%20");
