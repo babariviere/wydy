@@ -33,6 +33,8 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
         }
     });
 
+    let vars = ::env::Vars::load();
+
     // Handle all new connections
     for stream in listener.incoming() {
         match stream {

@@ -4,6 +4,7 @@ version = "0.1.0"
 dependencies = [
  "fern 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parser_rs 0.1.0",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "verex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -55,6 +56,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "parser_rs"
+version = "0.1.0"
 
 [[package]]
 name = "regex"

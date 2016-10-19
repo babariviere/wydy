@@ -1,14 +1,16 @@
 extern crate fern;
 #[macro_use]
 extern crate log;
+extern crate parser_rs;
 extern crate time;
 extern crate verex;
 
 pub mod command;
 pub mod config;
 pub mod env;
-mod url_check;
+pub mod parser;
 pub mod server;
+mod url_check;
 
 pub fn init_logging(log_level: u8) {
     let dir = std::env::current_exe().unwrap().parent().unwrap().join(".wydyd.log");
@@ -37,7 +39,6 @@ pub fn init_logging(log_level: u8) {
         output: vec![fern::OutputConfig::file(&dir), fern::OutputConfig::stdout()],
         level: log_level,
     };
-    // TODO modify log level
     fern::init_global_logger(logger_config, log_level).unwrap();
     trace!("Init logging");
 }

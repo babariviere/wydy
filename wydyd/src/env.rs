@@ -1,7 +1,12 @@
 use config::config_dir;
+use parser::parse_vars;
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
 use std::process::Command;
 
-struct Var {
+#[derive(Debug)]
+pub struct Var {
     name: String,
     value: String,
 }
@@ -33,7 +38,18 @@ pub struct Vars(Vec<Var>);
 impl Vars {
     /// Load all vars from file
     pub fn load() -> Vars {
-        unimplemented!()
+        let config_dir = config_dir();
+        let path = config_dir.join("vars");
+        let mut file = match File::open(&path) {
+            Ok(f) => f,
+            Err(_) => {
+                File::create(&path).unwrap();
+                return Vars::default();
+            }
+        };
+        let mut content = String::new();
+        file.read_to_string(&mut content).unwrap();
+        Vars(parse_vars(content))
     }
 
     /// Search for the variable with this name and return is index.
