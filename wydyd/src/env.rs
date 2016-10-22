@@ -2,7 +2,6 @@ use config::config_dir;
 use parser::parse_vars;
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
 use std::process::Command;
 
 #[derive(Debug)]

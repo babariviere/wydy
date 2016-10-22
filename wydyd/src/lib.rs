@@ -29,10 +29,11 @@ pub fn init_logging(log_level: u8) {
 
     let logger_config = fern::DispatchConfig {
         format: Box::new(|msg: &str, level: &log::LogLevel, location: &log::LogLocation| {
-            let mut s = String::new();
-            if *level == log::LogLevel::Debug || *level == log::LogLevel::Trace {
-                s = format!("{}:{}\n", location.file(), location.line());
-            }
+            let mut s = if *level == log::LogLevel::Debug || *level == log::LogLevel::Trace {
+                format!("{}:{}\n", location.file(), location.line())
+            } else {
+                String::new()
+            };
             s.push_str(&format!("[{}]: {}", level, msg));
             s
         }),

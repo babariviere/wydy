@@ -142,7 +142,7 @@ fn handle_multiple_commands(stream: &mut TcpStream, commands: Vec<WCommand>) -> 
 
 /// Send response to the command that the server receive
 /// If the return value then
-fn send_command_response(stream: &mut TcpStream, commands: &Vec<WCommand>) -> u8 {
+fn send_command_response(stream: &mut TcpStream, commands: &[WCommand]) -> u8 {
     match commands.len() {
         1 => {
             stream.write(&[1]).unwrap();

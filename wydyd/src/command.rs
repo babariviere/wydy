@@ -42,10 +42,10 @@ impl WCommand {
 
 /// Parse one command and return wydy command
 /// ej:
-/// command = "edit update_all"
+/// command = "edit update"
 /// There will be two result
-/// [1] edit file update_all
-/// [2] search for "edit update_all"
+/// [1] edit file update
+/// [2] search for "edit update"
 pub fn parse_command(command: String) -> Vec<WCommand> {
     let command = command.trim().to_string();
     let mut command_clone = command.clone();
@@ -61,12 +61,9 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
             web_search(&search, &mut result);
         }
         Some("add") => {
-            match command_split.next() {
-                Some("script") => {
-                    let name = command_clone.drain(11..).collect::<String>();
-                    add_script(&name);
-                }
-                _ => {}
+            if let Some("script") = command_split.next() {
+                let name = command_clone.drain(11..).collect::<String>();
+                add_script(&name);
             }
         }
         Some(_) => {
@@ -85,7 +82,7 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
 /// Add a script
 fn add_script(name: &str) {
     let mut name = name.replace("_", "/");
-    let idx = name.rfind("/").unwrap_or(0);
+    let idx = name.rfind('/').unwrap_or(0);
     let dirs = name.drain(..idx + 1).collect::<String>();
     let path = config_dir().join("scripts").join(&dirs);
     create_dir_all(&path).unwrap();
@@ -101,7 +98,7 @@ fn is_command(command: &str) -> bool {
         None => command,
     };
     let path = env!("PATH");
-    let path_split = path.split(":");
+    let path_split = path.split(':');
     for p in path_split {
         let command_path = Path::new(p).join(command);
         if command_path.exists() {
