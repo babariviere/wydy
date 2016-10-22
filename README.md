@@ -11,4 +11,5 @@ It is a personnal project to speed up my productivity.
 - [ ] Execute command locally
 - [ ] Find files and open them
 - [ ] Scripts handler
+- [x] Vars support
 
