@@ -111,16 +111,18 @@ fn is_command(command: &str) -> bool {
 }
 
 fn web_search(search: &str, commands: &mut Vec<WCommand>, vars: &Arc<Mutex<Vars>>) {
-    // TODO add variable for search engine
+    let vars_lock = vars.lock().unwrap();
+    let browser = vars_lock.value_of("browser").unwrap_or("firefox".to_string());
     let search = search.replace(" ", "%20");
     if ::url_check::is_url(&search) {
-        let command = WCommand::new(format!("firefox {}", search),
+        let command = WCommand::new(format!("{} {}", browser, search),
                                     format!("opening url {}", search));
         commands.push(command);
     }
-    let vars_lock = vars.lock().unwrap();
     let search_engine = vars_lock.value_of("search_engine").unwrap_or_default();
-    let command = WCommand::new(format!("firefox {}", search_engine_link(&search_engine, &search)),
+    let command = WCommand::new(format!("{} {}",
+                                        browser,
+                                        search_engine_link(&search_engine, &search)),
                                 format!("search for {}", search));
     commands.push(command);
 }
@@ -132,7 +134,8 @@ fn search_engine_link(name: &str, search: &str) -> String {
         "duckduckgo" => format!("https://duckduckgo.com/?q={}", search),
         "google" => format!("https://google.com/#q={}", search),
         s => {
-            error!("Unknown search engine {}, searching on duckduckgo by default.",
+            error!("Unknown search engine {}, searching on duckduckgo by default.\nType \"edit \
+                    vars\" and change the value of \"search_engine\" to fix this problem.",
                    s);
             format!("https://duckduckgo.com/?q={}", search)
         }
