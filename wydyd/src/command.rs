@@ -1,7 +1,9 @@
 use config::config_dir;
+use env::Vars;
 use std::fs::{create_dir_all, File};
 use std::path::Path;
 use std::process::Command;
+use std::sync::{Arc, Mutex};
 
 /// Represent a wydy command
 /// command var is the command to execute, ej: vi src/command.rs
@@ -46,7 +48,7 @@ impl WCommand {
 /// There will be two result
 /// [1] edit file update
 /// [2] search for "edit update"
-pub fn parse_command(command: String) -> Vec<WCommand> {
+pub fn parse_command(command: String, vars: &Arc<Mutex<Vars>>) -> Vec<WCommand> {
     let command = command.trim().to_string();
     let mut command_clone = command.clone();
     let mut command_split = command.split_whitespace();
@@ -54,11 +56,11 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
     match command_split.next() {
         Some("search") => {
             let search = command_clone.drain(7..).collect::<String>();
-            web_search(&search, &mut result);
+            web_search(&search, &mut result, vars);
         }
         Some("open") => {
             let search = command_clone.drain(5..).collect::<String>();
-            web_search(&search, &mut result);
+            web_search(&search, &mut result, vars);
         }
         Some("add") => {
             if let Some("script") = command_split.next() {
@@ -72,7 +74,7 @@ pub fn parse_command(command: String) -> Vec<WCommand> {
                                             &format!("executing {}", &command_clone));
                 result.push(command);
             }
-            web_search(&command_clone, &mut result);
+            web_search(&command_clone, &mut result, vars);
         }
         _ => {}
     }
@@ -108,7 +110,7 @@ fn is_command(command: &str) -> bool {
     false
 }
 
-fn web_search(search: &str, commands: &mut Vec<WCommand>) {
+fn web_search(search: &str, commands: &mut Vec<WCommand>, vars: &Arc<Mutex<Vars>>) {
     // TODO add variable for search engine
     let search = search.replace(" ", "%20");
     if ::url_check::is_url(&search) {
@@ -116,7 +118,23 @@ fn web_search(search: &str, commands: &mut Vec<WCommand>) {
                                     format!("opening url {}", search));
         commands.push(command);
     }
-    let command = WCommand::new(format!("firefox https://duckduckgo.com/?q={}", search),
+    let vars_lock = vars.lock().unwrap();
+    let search_engine = vars_lock.value_of("search_engine").unwrap_or_default();
+    let command = WCommand::new(format!("firefox {}", search_engine_link(&search_engine, &search)),
                                 format!("search for {}", search));
     commands.push(command);
+}
+
+/// With the name of the search engine and the search to do, it returns a link to the search on the
+/// search engine.
+fn search_engine_link(name: &str, search: &str) -> String {
+    match name {
+        "duckduckgo" => format!("https://duckduckgo.com/?q={}", search),
+        "google" => format!("https://google.com/#q={}", search),
+        s => {
+            error!("Unknown search engine {}, searching on duckduckgo by default.",
+                   s);
+            format!("https://duckduckgo.com/?q={}", search)
+        }
+    }
 }

@@ -1,7 +1,9 @@
 use command::*;
+use env::Vars;
 use std::io;
 use std::io::{BufRead, Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
@@ -33,14 +35,15 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
         }
     });
 
-    let vars = ::env::Vars::load();
+    let vars = Arc::new(Mutex::new(Vars::load()));
 
     // Handle all new connections
     for stream in listener.incoming() {
+        let vars = vars.clone();
         match stream {
             Ok(stream) => {
                 thread::spawn(move || {
-                    handle_client(stream);
+                    handle_client(stream, vars);
                 });
             }
             Err(e) => {
@@ -50,7 +53,7 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
     }
 }
 
-pub fn handle_client(mut stream: TcpStream) {
+pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) {
     let addr = stream.peer_addr().unwrap();
     info!("Client connected {}", addr);
     if !confirmation_process(&mut stream) {
@@ -83,9 +86,8 @@ pub fn handle_client(mut stream: TcpStream) {
             };
         }
         let command = command;
-        // Only for verbose
-        // print!("[{}] {}", addr, command);
-        let commands = parse_command(command);
+        debug!("[{}] {}", addr, command);
+        let commands = parse_command(command, &vars);
 
         // TODO add option to send output
         let action = send_command_response(&mut stream, &commands);
