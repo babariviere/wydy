@@ -1,4 +1,5 @@
-use config::config_dir;
+use APP_INFO;
+use app_dirs::{AppDataType, get_app_root};
 use env::Vars;
 use parser::{WCPResult, WKeyword, parse_command_str};
 use std::fs::{create_dir_all, File};
@@ -112,7 +113,7 @@ fn script_cmd(command_list: &mut Vec<WCommand>,
 fn scriptify(name: &str) -> PathBuf {
     let mut name = name.replace("_", "/");
     let idx = name.rfind('/').unwrap_or(0);
-    let mut path = config_dir().join("scripts");
+    let mut path = get_app_root(AppDataType::UserConfig, &APP_INFO).unwrap().join("scripts");
     match idx {
         0 => {}
         _ => {

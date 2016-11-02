@@ -1,3 +1,4 @@
+extern crate app_dirs;
 extern crate fern;
 #[macro_use]
 extern crate log;
@@ -6,11 +7,17 @@ extern crate time;
 extern crate verex;
 
 pub mod command;
-pub mod config;
 pub mod env;
 pub mod parser;
 pub mod server;
 mod url_check;
+
+use app_dirs::AppInfo;
+
+const APP_INFO: AppInfo = AppInfo {
+    name: "wydy",
+    author: "notkild",
+};
 
 /// Init logging in file and stdout.
 pub fn init_logging(log_level: u8) {
