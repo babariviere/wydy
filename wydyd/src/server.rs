@@ -63,15 +63,7 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) {
     loop {
         // TODO remove unwrap
         // Receive command
-        let mut presence = [0];
-        match stream.read(&mut presence) {
-            Ok(_) => {}
-            Err(e) => {
-                error!("Can't receive presence: {}", e);
-                break;
-            }
-        };
-        if presence[0] != 1 {
+        if !receive_presence(&mut stream) {
             break;
         }
         let mut command = String::new();
@@ -85,9 +77,9 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) {
                 }
             };
         }
-        let command = command;
+        let command = command.trim().to_string();
         debug!("[{}] {}", addr, command);
-        let commands = parse_command(command, &vars);
+        let commands = parse_user_command(command, &vars);
 
         // TODO add option to send output
         let action = send_command_response(&mut stream, &commands);
@@ -108,13 +100,41 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) {
         }
         let send = format!("executing \"{}\"\n", command.command());
         stream.write(send.as_bytes()).unwrap();
-        debug!("[{}] {}", addr, command.desc());
+        debug!("[{}] {}\n>>> {}", addr, command.desc(), command.command());
         let code = command.run();
-        stream.write(format!("{}\n", code).as_bytes()).unwrap();
+        debug!("[{}] command `{}` exited with error code {}",
+               addr,
+               command.command(),
+               code);
+        if !receive_presence(&mut stream) {
+            break;
+        }
+        let send = format!("{}\n", code);
+        stream.write(send.as_bytes()).unwrap();
     }
 
     info!("Client disconnected {}", addr);
 }
+
+fn receive_presence(stream: &mut TcpStream) -> bool {
+    let addr = stream.peer_addr().unwrap();
+    let mut presence = [0];
+    match stream.read(&mut presence) {
+        Ok(_) => {}
+        Err(e) => {
+            error!("Can't receive presence: {}", e);
+            return false;
+        }
+    };
+    if presence[0] != 1 {
+        debug!("[{}] Presence check failed. Receive {} instead of 1",
+               addr,
+               presence[0]);
+        return false;
+    }
+    true
+}
+
 
 /// Handle multiple commands
 fn handle_multiple_commands(stream: &mut TcpStream, commands: Vec<WCommand>) -> Option<WCommand> {

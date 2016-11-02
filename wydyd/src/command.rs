@@ -1,7 +1,8 @@
 use config::config_dir;
 use env::Vars;
+use parser::{WCPResult, WKeyword, parse_command_str};
 use std::fs::{create_dir_all, File};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 
@@ -12,6 +13,15 @@ use std::sync::{Arc, Mutex};
 pub struct WCommand {
     command: String,
     desc: String,
+}
+
+// TODO add wlocation to wcommand
+// Specify where the command can be run
+#[allow(dead_code)]
+enum WLocation {
+    Both,
+    Server,
+    Client,
 }
 
 impl WCommand {
@@ -42,89 +52,132 @@ impl WCommand {
     }
 }
 
-/// Parse one command and return wydy command
-/// ej:
-/// command = "edit update"
-/// There will be two result
+/// Parse user command and return a list of wydy commands.
+///
+/// # Example
+///
+/// user_command = "edit update":
 /// [1] edit file update
 /// [2] search for "edit update"
-pub fn parse_command(command: String, vars: &Arc<Mutex<Vars>>) -> Vec<WCommand> {
-    let command = command.trim().to_string();
-    let mut command_clone = command.clone();
-    let mut command_split = command.split_whitespace();
-    let mut result = Vec::new();
-    match command_split.next() {
-        Some("search") => {
-            let search = command_clone.drain(7..).collect::<String>();
-            web_search(&search, &mut result, vars);
+pub fn parse_user_command(command: String, vars: &Arc<Mutex<Vars>>) -> Vec<WCommand> {
+    let mut command_list = Vec::new();
+    let parse_result = parse_command_str(command);
+    debug!("Parse result {:?}", parse_result);
+
+    script_cmd(&mut command_list, &parse_result, vars);
+    command_cmd(&mut command_list, &parse_result);
+    web_search_cmd(&mut command_list, &parse_result, vars);
+
+    command_list
+}
+
+/// Add all command related to script
+fn script_cmd(command_list: &mut Vec<WCommand>,
+              parse_result: &WCPResult,
+              vars: &Arc<Mutex<Vars>>) {
+    let &(ref keyword, ref content) = parse_result;
+    // TODO add support for multiple script
+    if !content.starts_with("script") {
+        return;
+    }
+    let mut content = content.clone();
+    let content = content.drain(7..).collect::<String>();
+    // TODO add support to check script presence and run it
+    match *keyword {
+        WKeyword::Add => {
+            let path = scriptify(&content);
+            create_dir_all(path.parent().unwrap()).unwrap();
+            debug!("{}", path.display());
+            File::create(&path).unwrap();
         }
-        Some("open") => {
-            let search = command_clone.drain(5..).collect::<String>();
-            web_search(&search, &mut result, vars);
-        }
-        Some("add") => {
-            if let Some("script") = command_split.next() {
-                let name = command_clone.drain(11..).collect::<String>();
-                add_script(&name);
+        WKeyword::Edit => {
+            let path = scriptify(&content);
+            if !path.exists() {
+                return;
             }
-        }
-        Some(_) => {
-            if is_command(&command_clone) {
-                let command = WCommand::new(command_clone.as_str(),
-                                            &format!("executing {}", &command_clone));
-                result.push(command);
-            }
-            web_search(&command_clone, &mut result, vars);
+            let editor = vars.lock().unwrap().value_of("editor").unwrap_or("vi".to_string());
+            // TODO send process to the client
+            command_list.push(WCommand::new(format!("{} {}", editor, path.display()),
+                                            format!("edit script {}", content)));
         }
         _ => {}
     }
-    result
 }
 
-/// Add a script
-fn add_script(name: &str) {
+/// Transform a string in a script path.
+///
+/// # Example
+///
+/// update_all -> <config_dir>/scripts/update/all
+fn scriptify(name: &str) -> PathBuf {
     let mut name = name.replace("_", "/");
     let idx = name.rfind('/').unwrap_or(0);
-    let dirs = name.drain(..idx + 1).collect::<String>();
-    let path = config_dir().join("scripts").join(&dirs);
-    create_dir_all(&path).unwrap();
-    let path = path.join(&name);
-    debug!("{}", path.display());
-    File::create(&path).unwrap();
-}
-
-/// Check if command is in path
-fn is_command(command: &str) -> bool {
-    let command = match command.split_whitespace().next() {
-        Some(c) => c,
-        None => command,
-    };
-    let path = env!("PATH");
-    let path_split = path.split(':');
-    for p in path_split {
-        let command_path = Path::new(p).join(command);
-        if command_path.exists() {
-            return true;
+    let mut path = config_dir().join("scripts");
+    match idx {
+        0 => {}
+        _ => {
+            let dirs = name.drain(..idx + 1).collect::<String>();
+            path = path.join(dirs);
         }
     }
-    false
+    path = path.join(name);
+    path
 }
 
-fn web_search(search: &str, commands: &mut Vec<WCommand>, vars: &Arc<Mutex<Vars>>) {
+/// Check if command is in path and add it to the command list.
+fn command_cmd(command_list: &mut Vec<WCommand>, parse_result: &WCPResult) {
+    match *parse_result {
+        (WKeyword::Run, ref s) |
+        (WKeyword::None, ref s) => {
+            let command = match s.split_whitespace().next() {
+                Some(c) => c,
+                None => s,
+            };
+            let path = env!("PATH");
+            let path_split = path.split(':');
+            let mut exists = false;
+            for p in path_split {
+                let command_path = Path::new(p).join(command);
+                if command_path.exists() {
+                    exists = true;
+                }
+            }
+            if exists {
+                command_list.push(WCommand::new(s.to_string(), format!("execute `{}`", s)));
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Check the parse result and add to the command list a link or a search.
+fn web_search_cmd(command_list: &mut Vec<WCommand>,
+                  parse_result: &WCPResult,
+                  vars: &Arc<Mutex<Vars>>) {
     let vars_lock = vars.lock().unwrap();
     let browser = vars_lock.value_of("browser").unwrap_or("firefox".to_string());
-    let search = search.replace(" ", "%20");
-    if ::url_check::is_url(&search) {
-        let command = WCommand::new(format!("{} {}", browser, search),
-                                    format!("opening url {}", search));
-        commands.push(command);
-    }
     let search_engine = vars_lock.value_of("search_engine").unwrap_or_default();
-    let command = WCommand::new(format!("{} {}",
-                                        browser,
-                                        search_engine_link(&search_engine, &search)),
-                                format!("search for {}", search));
-    commands.push(command);
+    let &(ref keyword, ref search) = parse_result;
+    let search = search.replace(" ", "%20");
+    match *keyword {
+        WKeyword::Search | WKeyword::None => {
+            if ::url_check::is_url(&search) {
+                command_list.push(WCommand::new(format!("{} {}", browser, search),
+                                                format!("opening url {}", search)));
+            }
+            command_list.push(WCommand::new(format!("{} {}",
+                                                    browser,
+                                                    search_engine_link(&search_engine, &search)),
+                                            format!("search for {}", search)));
+        }
+        WKeyword::Open => {
+            if ::url_check::is_url(&search) {
+                command_list.push(WCommand::new(format!("{} {}", browser, search),
+                                                format!("opening url {}", search)));
+            }
+        }
+        _ => {}
+    }
 }
 
 /// With the name of the search engine and the search to do, it returns a link to the search on the

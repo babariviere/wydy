@@ -12,6 +12,7 @@ pub mod parser;
 pub mod server;
 mod url_check;
 
+/// Init logging in file and stdout.
 pub fn init_logging(log_level: u8) {
     let dir = std::env::current_exe().unwrap().parent().unwrap().join(".wydyd.log");
     if dir.exists() {
@@ -28,14 +29,8 @@ pub fn init_logging(log_level: u8) {
     };
 
     let logger_config = fern::DispatchConfig {
-        format: Box::new(|msg: &str, level: &log::LogLevel, location: &log::LogLocation| {
-            let mut s = if *level == log::LogLevel::Debug || *level == log::LogLevel::Trace {
-                format!("{}:{}\n", location.file(), location.line())
-            } else {
-                String::new()
-            };
-            s.push_str(&format!("[{}]: {}", level, msg));
-            s
+        format: Box::new(|msg: &str, level: &log::LogLevel, _location: &log::LogLocation| {
+            format!("[{}]: {}", level, msg)
         }),
         output: vec![fern::OutputConfig::file(&dir), fern::OutputConfig::stdout()],
         level: log_level,

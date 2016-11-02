@@ -128,6 +128,7 @@ fn receive_commands(stream: &mut TcpStream) -> Vec<String> {
 fn receive_command_process(stream: &mut TcpStream) {
     let cmd_desc = receive_running_command_desc(stream);
     print!("{}", cmd_desc);
+    send_presence(stream);
     let code = receive_status(stream);
     println!("Command executed with code {}", code);
 }

@@ -48,3 +48,7 @@ Add support for sdl2, gtk3, ncurses. (only for client side)
 
 Add support for config file.
 Contains default flags.
+
+------
+
+Add ability to use client config file.
