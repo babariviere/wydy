@@ -5,6 +5,7 @@ authors = ["notkild <notkild@gmail.com>"]
 
 [dependencies]
 app_dirs = "*"
+clap = "*"
 fern = "*"
 log = "*"
 time = "*"
