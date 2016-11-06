@@ -83,7 +83,7 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) {
 
         // TODO add option to send output
         let action = send_command_response(&mut stream, &commands);
-        let mut command = WCommand::new("", "");
+        let mut command = WCommand::new("", "", WLocation::Null);
         match action {
             1 => {
                 command = commands[0].clone();

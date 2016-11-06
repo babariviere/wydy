@@ -5,6 +5,3 @@ authors = ["notkild <notkild@gmail.com>"]
 
 [dependencies]
 
-[lib]
-name="libwydyc"
-path="src/lib.rs"

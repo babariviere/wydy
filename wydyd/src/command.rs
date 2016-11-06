@@ -2,34 +2,39 @@ use APP_INFO;
 use app_dirs::{AppDataType, get_app_root};
 use env::Vars;
 use parser::{WCPResult, WKeyword, parse_command_str};
-use std::fs::{create_dir_all, File};
+use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 
+/// Specify where the command can be run
+#[derive(Clone)]
+pub enum WLocation {
+    Null = 0,
+    Server = 1,
+    Client = 2,
+    Both = 3,
+}
+
 /// Represent a wydy command
 /// command var is the command to execute, ej: vi src/command.rs
 /// desc var is the description, ej: edit file "src/command.rs"
+/// loc var is location where the command can be run
 #[derive(Clone)]
 pub struct WCommand {
     command: String,
     desc: String,
-}
-
-// TODO add wlocation to wcommand
-// Specify where the command can be run
-#[allow(dead_code)]
-enum WLocation {
-    Both,
-    Server,
-    Client,
+    loc: WLocation,
 }
 
 impl WCommand {
-    pub fn new<S: Into<String>>(command: S, desc: S) -> WCommand {
+    pub fn new<S: Into<String>>(command: S, desc: S, loc: WLocation) -> WCommand {
         WCommand {
             command: command.into(),
             desc: desc.into(),
+            loc: loc,
         }
     }
 
@@ -72,34 +77,74 @@ pub fn parse_user_command(command: String, vars: &Arc<Mutex<Vars>>) -> Vec<WComm
     command_list
 }
 
+// TODO reduce size of code
 /// Add all command related to script
 fn script_cmd(command_list: &mut Vec<WCommand>,
               parse_result: &WCPResult,
               vars: &Arc<Mutex<Vars>>) {
     let &(ref keyword, ref content) = parse_result;
-    // TODO add support for multiple script
-    if !content.starts_with("script") {
-        return;
-    }
     let mut content = content.clone();
-    let content = content.drain(7..).collect::<String>();
-    // TODO add support to check script presence and run it
+    let script_prefix = content.starts_with("script");
+    let paths = scriptify(&content);
     match *keyword {
-        WKeyword::Add => {
-            let path = scriptify(&content);
-            create_dir_all(path.parent().unwrap()).unwrap();
-            debug!("{}", path.display());
-            File::create(&path).unwrap();
+        WKeyword::Add if script_prefix => {
+            for path in paths {
+                if path.exists() {
+                    warn!("Script {} exists", path.display());
+                    continue;
+                }
+                match fs::create_dir_all(path.parent().unwrap()) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        error!("{}", e);
+                        continue;
+                    }
+                }
+                debug!("{}", path.display());
+                match fs::File::create(&path) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        error!("{}", e);
+                        continue;
+                    }
+                }
+                if cfg!(unix) {
+                    let mut perms = fs::metadata(&path).unwrap().permissions();
+                    perms.set_mode(0o744);
+                    fs::set_permissions(&path, perms).unwrap();
+                }
+            }
         }
         WKeyword::Edit => {
-            let path = scriptify(&content);
-            if !path.exists() {
-                return;
+            for path in paths {
+                if !path.exists() {
+                    return;
+                }
+                let editor = vars.lock().unwrap().value_of("editor").unwrap_or("vi".to_string());
+                // TODO send process to the client
+                command_list.push(WCommand::new(format!("{} {}", editor, path.display()),
+                                                format!("edit script {}", content),
+                                                WLocation::Client));
             }
-            let editor = vars.lock().unwrap().value_of("editor").unwrap_or("vi".to_string());
-            // TODO send process to the client
-            command_list.push(WCommand::new(format!("{} {}", editor, path.display()),
-                                            format!("edit script {}", content)));
+        }
+        WKeyword::Delete if script_prefix => {
+            for path in paths {
+                if !path.exists() {
+                    return;
+                }
+                debug!("Removing {}...", path.display());
+                fs::remove_file(&path).unwrap();
+            }
+        }
+        WKeyword::Run => {
+            for path in paths {
+                if !path.exists() {
+                    return;
+                }
+                command_list.push(WCommand::new(format!("{}", path.display()),
+                                                format!("run script {}", content),
+                                                WLocation::Both));
+            }
         }
         _ => {}
     }
@@ -110,19 +155,31 @@ fn script_cmd(command_list: &mut Vec<WCommand>,
 /// # Example
 ///
 /// update_all -> <config_dir>/scripts/update/all
-fn scriptify(name: &str) -> PathBuf {
-    let mut name = name.replace("_", "/");
-    let idx = name.rfind('/').unwrap_or(0);
-    let mut path = get_app_root(AppDataType::UserConfig, &APP_INFO).unwrap().join("scripts");
-    match idx {
-        0 => {}
-        _ => {
-            let dirs = name.drain(..idx + 1).collect::<String>();
-            path = path.join(dirs);
-        }
+fn scriptify(content: &str) -> Vec<PathBuf> {
+    let content = content.replace("_", "/");
+    let skip_first = content.starts_with("script");
+    let mut scripts = content.split_whitespace();
+    if skip_first {
+        scripts.next();
     }
-    path = path.join(name);
-    path
+    let mut paths = Vec::new();
+    for script in scripts {
+        let mut script = script.to_string();
+        if cfg!(target_os = "windows") {
+            script.push_str(".bat");
+        }
+        let idx = script.rfind('/').unwrap_or(0);
+        let mut path = get_app_root(AppDataType::UserConfig, &APP_INFO).unwrap().join("scripts");
+        match idx {
+            0 => {}
+            _ => {
+                let dirs = script.drain(..idx + 1).collect::<String>();
+                path = path.join(dirs);
+            }
+        }
+        paths.push(path.join(script));
+    }
+    paths
 }
 
 /// Check if command is in path and add it to the command list.
@@ -144,7 +201,9 @@ fn command_cmd(command_list: &mut Vec<WCommand>, parse_result: &WCPResult) {
                 }
             }
             if exists {
-                command_list.push(WCommand::new(s.to_string(), format!("execute `{}`", s)));
+                command_list.push(WCommand::new(s.to_string(),
+                                                format!("execute `{}`", s),
+                                                WLocation::Both));
             }
         }
         _ => {}
@@ -164,17 +223,20 @@ fn web_search_cmd(command_list: &mut Vec<WCommand>,
         WKeyword::Search | WKeyword::None => {
             if ::url_check::is_url(&search) {
                 command_list.push(WCommand::new(format!("{} {}", browser, search),
-                                                format!("opening url {}", search)));
+                                                format!("opening url {}", search),
+                                                WLocation::Both));
             }
             command_list.push(WCommand::new(format!("{} {}",
                                                     browser,
                                                     search_engine_link(&search_engine, &search)),
-                                            format!("search for {}", search)));
+                                            format!("search for {}", search),
+                                            WLocation::Both));
         }
         WKeyword::Open => {
             if ::url_check::is_url(&search) {
                 command_list.push(WCommand::new(format!("{} {}", browser, search),
-                                                format!("opening url {}", search)));
+                                                format!("opening url {}", search),
+                                                WLocation::Both));
             }
         }
         _ => {}
@@ -188,9 +250,9 @@ fn search_engine_link(name: &str, search: &str) -> String {
         "duckduckgo" => format!("https://duckduckgo.com/?q={}", search),
         "google" => format!("https://google.com/#q={}", search),
         s => {
-            error!("Unknown search engine {}, searching on duckduckgo by default.\nType \"edit \
+            warn!("Unknown search engine {}, searching on duckduckgo by default.\nType \"edit \
                     vars\" and change the value of \"search_engine\" to fix this problem.",
-                   s);
+                  s);
             format!("https://duckduckgo.com/?q={}", search)
         }
     }

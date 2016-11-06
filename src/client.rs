@@ -6,7 +6,7 @@ use std::net::{TcpStream, ToSocketAddrs};
 pub fn connect_to_server<A: ToSocketAddrs>(addr: A) -> Result<TcpStream, String> {
     let mut stream = match TcpStream::connect(addr) {
         Ok(s) => s,
-        Err(e) => return Err(format!("Can't connect to server: {}", e)),
+        Err(_) => return Err("Server isn't available, run wydyd".to_string()),
     };
 
     if !confirmation_process(&mut stream) {

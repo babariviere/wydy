@@ -1,5 +1,5 @@
-extern crate libwydyc;
-use libwydyc::client::*;
+extern crate wydy;
+use wydy::client::*;
 
 fn main() {
     let mut server = connect_to_server("127.0.0.1:9654").unwrap();
