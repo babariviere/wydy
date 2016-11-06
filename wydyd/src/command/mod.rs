@@ -1,13 +1,11 @@
-use APP_INFO;
-use app_dirs::{AppDataType, get_app_root};
 use env::Vars;
 use parser::{WCPResult, WKeyword, parse_command_str};
-use std::fs;
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
+
+mod script;
+use self::script::*;
 
 /// Specify where the command can be run
 #[derive(Clone)]
@@ -83,104 +81,34 @@ fn script_cmd(command_list: &mut Vec<WCommand>,
               parse_result: &WCPResult,
               vars: &Arc<Mutex<Vars>>) {
     let &(ref keyword, ref content) = parse_result;
-    let mut content = content.clone();
+    let content = content.clone();
     let script_prefix = content.starts_with("script");
     let paths = scriptify(&content);
     match *keyword {
         WKeyword::Add if script_prefix => {
             for path in paths {
-                if path.exists() {
-                    warn!("Script {} exists", path.display());
-                    continue;
-                }
-                match fs::create_dir_all(path.parent().unwrap()) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        error!("{}", e);
-                        continue;
-                    }
-                }
-                debug!("{}", path.display());
-                match fs::File::create(&path) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        error!("{}", e);
-                        continue;
-                    }
-                }
-                if cfg!(unix) {
-                    let mut perms = fs::metadata(&path).unwrap().permissions();
-                    perms.set_mode(0o744);
-                    fs::set_permissions(&path, perms).unwrap();
-                }
+                add_script(command_list, path);
             }
         }
         WKeyword::Edit => {
             for path in paths {
-                if !path.exists() {
-                    return;
-                }
-                let editor = vars.lock().unwrap().value_of("editor").unwrap_or("vi".to_string());
-                // TODO send process to the client
-                command_list.push(WCommand::new(format!("{} {}", editor, path.display()),
-                                                format!("edit script {}", content),
-                                                WLocation::Client));
+                edit_script(command_list, vars, path, &content);
             }
         }
         WKeyword::Delete if script_prefix => {
             for path in paths {
-                if !path.exists() {
-                    return;
-                }
-                debug!("Removing {}...", path.display());
-                fs::remove_file(&path).unwrap();
+                delete_script(command_list, path);
             }
         }
         WKeyword::Run => {
             for path in paths {
-                if !path.exists() {
-                    return;
-                }
-                command_list.push(WCommand::new(format!("{}", path.display()),
-                                                format!("run script {}", content),
-                                                WLocation::Both));
+                run_script(command_list, path, &content);
             }
         }
         _ => {}
     }
 }
 
-/// Transform a string in a script path.
-///
-/// # Example
-///
-/// update_all -> <config_dir>/scripts/update/all
-fn scriptify(content: &str) -> Vec<PathBuf> {
-    let content = content.replace("_", "/");
-    let skip_first = content.starts_with("script");
-    let mut scripts = content.split_whitespace();
-    if skip_first {
-        scripts.next();
-    }
-    let mut paths = Vec::new();
-    for script in scripts {
-        let mut script = script.to_string();
-        if cfg!(target_os = "windows") {
-            script.push_str(".bat");
-        }
-        let idx = script.rfind('/').unwrap_or(0);
-        let mut path = get_app_root(AppDataType::UserConfig, &APP_INFO).unwrap().join("scripts");
-        match idx {
-            0 => {}
-            _ => {
-                let dirs = script.drain(..idx + 1).collect::<String>();
-                path = path.join(dirs);
-            }
-        }
-        paths.push(path.join(script));
-    }
-    paths
-}
 
 /// Check if command is in path and add it to the command list.
 fn command_cmd(command_list: &mut Vec<WCommand>, parse_result: &WCPResult) {

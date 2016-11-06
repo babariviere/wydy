@@ -1,3 +1,7 @@
+// Config for clippy
+#![allow(unknown_lints)]
+#![allow(doc_markdown)]
+
 extern crate app_dirs;
 extern crate fern;
 #[macro_use]
