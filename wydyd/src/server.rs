@@ -23,16 +23,7 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
     // Handle input to close the server
     thread::spawn(|| {
         info!("Press \'q\' + <Return> to close the server");
-        loop {
-            let mut stdin = io::stdin();
-            let mut recv = [0];
-            stdin.read(&mut recv).unwrap();
-            let recv = recv[0] as char;
-            if recv == 'q' {
-                info!("Server is closing...");
-                ::std::process::exit(0);
-            }
-        }
+        handle_exit();
     });
 
     let vars = Arc::new(Mutex::new(Vars::load()));
@@ -47,15 +38,31 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
                 });
             }
             Err(e) => {
-                error!("Client tried to connect {}.", e);
+                error!("Client tried to connect {}", e);
             }
+        }
+    }
+
+}
+
+/// Handle user input to close server
+pub fn handle_exit() {
+    loop {
+        let mut stdin = io::stdin();
+        let mut recv = [0];
+        stdin.read(&mut recv).unwrap();
+        let recv = recv[0] as char;
+        if recv == 'q' {
+            info!("Server is now closed");
+            ::std::process::exit(0);
         }
     }
 }
 
+/// Handle client and do stuff with him.
 pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) {
     let addr = stream.peer_addr().unwrap();
-    info!("Client connected {}", addr);
+    info!("[{}] Client connected", addr);
     if !confirmation_process(&mut stream) {
         return;
     }
@@ -72,13 +79,13 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) {
             match reader.read_line(&mut command) {
                 Ok(_) => {}
                 Err(e) => {
-                    error!("Can't receive command: {}", e);
+                    error!("[{}] Can't receive command: {}", addr, e);
                     break;
                 }
             };
         }
         let command = command.trim().to_string();
-        debug!("[{}] {}", addr, command);
+        debug!("[{}] Raw command {}", addr, command);
         let commands = parse_user_command(command, &vars);
 
         // TODO add option to send output
@@ -113,9 +120,10 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) {
         stream.write(send.as_bytes()).unwrap();
     }
 
-    info!("Client disconnected {}", addr);
+    info!("[{}] Client disconnected", addr);
 }
 
+/// Receive presence from a wydy user.
 fn receive_presence(stream: &mut TcpStream) -> bool {
     let addr = stream.peer_addr().unwrap();
     let mut presence = [0];
@@ -183,6 +191,7 @@ fn send_command_response(stream: &mut TcpStream, commands: &[WCommand]) -> u8 {
 
 
 
+/// A process to confirm that the client use wydy.
 pub fn confirmation_process(stream: &mut TcpStream) -> bool {
     let addr = stream.peer_addr().unwrap();
     info!("[{}] Receiving confirmation...", addr);

@@ -6,9 +6,8 @@ authors = ["notkild <notkild@gmail.com>"]
 [dependencies]
 app_dirs = "*"
 clap = "*"
-fern = "*"
 log = "*"
-time = "*"
+simplelog = "*"
 verex = "*"
 
 [dependencies.parser_rs]

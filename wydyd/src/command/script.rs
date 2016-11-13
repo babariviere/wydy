@@ -1,5 +1,5 @@
 use APP_INFO;
-use app_dirs::{AppDataType, get_app_root};
+use app_dirs::{AppDataType, app_root};
 use command::{WCommand, WLocation};
 use env::Vars;
 use std::fs;
@@ -27,7 +27,7 @@ pub fn scriptify(content: &str) -> Vec<PathBuf> {
             script.push_str(".bat");
         }
         let idx = script.rfind('/').unwrap_or(0);
-        let mut path = get_app_root(AppDataType::UserConfig, &APP_INFO).unwrap().join("scripts");
+        let mut path = app_root(AppDataType::UserConfig, &APP_INFO).unwrap().join("scripts");
         match idx {
             0 => {}
             _ => {

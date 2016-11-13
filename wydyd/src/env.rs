@@ -1,5 +1,5 @@
 use APP_INFO;
-use app_dirs::{AppDataType, get_app_root};
+use app_dirs::{AppDataType, app_root};
 use parser::parse_vars;
 use std::fs::File;
 use std::io::Read;
@@ -38,7 +38,7 @@ pub struct Vars(Vec<Var>);
 impl Vars {
     /// Load all vars from file
     pub fn load() -> Vars {
-        let config_dir = get_app_root(AppDataType::UserConfig, &APP_INFO).unwrap();
+        let config_dir = app_root(AppDataType::UserConfig, &APP_INFO).unwrap();
         let path = config_dir.join("vars");
         let mut file = match File::open(&path) {
             Ok(f) => f,
@@ -93,7 +93,7 @@ impl Default for Vars {
 
 /// Start the editor to edit wydy variables.
 pub fn edit_variables(editor: String) {
-    let config_dir = get_app_root(AppDataType::UserConfig, &APP_INFO).unwrap();
+    let config_dir = app_root(AppDataType::UserConfig, &APP_INFO).unwrap();
     let env_file = config_dir.join("vars");
     match Command::new(&editor).arg(env_file.display().to_string()).output() {
         Ok(_) => {}
