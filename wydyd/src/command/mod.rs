@@ -145,25 +145,25 @@ fn web_search_cmd(command_list: &mut Vec<WCommand>,
     let vars_lock = vars.lock().unwrap();
     let browser = vars_lock.value_of("browser").unwrap_or("firefox".to_string());
     let search_engine = vars_lock.value_of("search_engine").unwrap_or_default();
-    let &(ref keyword, ref search) = parse_result;
-    let search = search.replace(" ", "%20");
+    let &(ref keyword, ref search_base) = parse_result;
+    let search = search_base.replace(" ", "%20");
     match *keyword {
         WKeyword::Search | WKeyword::None => {
             if ::url_check::is_url(&search) {
                 command_list.push(WCommand::new(format!("{} {}", browser, search),
-                                                format!("opening url {}", search),
+                                                format!("opening url {}", search_base),
                                                 WLocation::Both));
             }
             command_list.push(WCommand::new(format!("{} {}",
                                                     browser,
                                                     search_engine_link(&search_engine, &search)),
-                                            format!("search for {}", search),
+                                            format!("search for {}", search_base),
                                             WLocation::Both));
         }
         WKeyword::Open => {
             if ::url_check::is_url(&search) {
                 command_list.push(WCommand::new(format!("{} {}", browser, search),
-                                                format!("opening url {}", search),
+                                                format!("opening url {}", search_base),
                                                 WLocation::Both));
             }
         }
