@@ -38,9 +38,12 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
         let vars = vars.clone();
         match stream {
             Ok(stream) => {
-                thread::spawn(move || {
-                    handle_client(stream, vars).unwrap();
-                });
+                thread::Builder::new()
+                    .name(format!("{}", stream.peer_addr().unwrap()))
+                    .spawn(move || {
+                        handle_client(stream, vars).unwrap();
+                    })
+                    .unwrap();
             }
             Err(e) => {
                 error!("Client tried to connect {}", e);
