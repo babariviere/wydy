@@ -1,7 +1,12 @@
+pub mod confirmation;
+pub mod io;
+
 use command::*;
 use env::Vars;
-use std::io;
-use std::io::{BufRead, Read, Write};
+use error::Result;
+use self::confirmation::*;
+use self::io::*;
+use std::io::{Read, Write, stdin};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -34,7 +39,7 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
         match stream {
             Ok(stream) => {
                 thread::spawn(move || {
-                    handle_client(stream, vars);
+                    handle_client(stream, vars).unwrap();
                 });
             }
             Err(e) => {
@@ -48,10 +53,10 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
 /// Handle user input to close server
 pub fn handle_exit() {
     loop {
-        let mut stdin = io::stdin();
+        let mut stdin = stdin();
         let mut recv = [0];
         stdin.read(&mut recv).unwrap();
-        let recv = recv[0] as char;
+        let recv = ::std::char::from_u32(recv[0] as u32).unwrap();
         if recv == 'q' {
             info!("Server is now closed");
             ::std::process::exit(0);
@@ -60,31 +65,16 @@ pub fn handle_exit() {
 }
 
 /// Handle client and do stuff with him.
-pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) {
+pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) -> Result<()> {
     let addr = stream.peer_addr().unwrap();
     info!("[{}] Client connected", addr);
-    if !confirmation_process(&mut stream) {
-        return;
-    }
+    confirmation_process(&mut stream)?;
 
+    // We keep the loop because later we will use autocompletion
     loop {
         // TODO remove unwrap
         // Receive command
-        if !receive_presence(&mut stream) {
-            break;
-        }
-        let mut command = String::new();
-        {
-            let mut reader = io::BufReader::new(&mut stream);
-            match reader.read_line(&mut command) {
-                Ok(_) => {}
-                Err(e) => {
-                    error!("[{}] Can't receive command: {}", addr, e);
-                    break;
-                }
-            };
-        }
-        let command = command.trim().to_string();
+        let command = receive_command(&mut stream)?;
         debug!("[{}] Raw command {}", addr, command);
         let commands = parse_user_command(command, &vars);
 
@@ -96,7 +86,6 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) {
                 command = commands[0].clone();
             }
             2 => {
-                // TODO send choices
                 command = match handle_multiple_commands(&mut stream, commands) {
                     Some(c) => c,
                     None => break,
@@ -113,36 +102,16 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) {
                addr,
                command.command(),
                code);
-        if !receive_presence(&mut stream) {
-            break;
-        }
+        receive_presence(&mut stream)?;
         let send = format!("{}\n", code);
         stream.write(send.as_bytes()).unwrap();
+        info!("[{}] Client disconnected", addr);
+        return Ok(());
     }
 
     info!("[{}] Client disconnected", addr);
+    Ok(())
 }
-
-/// Receive presence from a wydy user.
-fn receive_presence(stream: &mut TcpStream) -> bool {
-    let addr = stream.peer_addr().unwrap();
-    let mut presence = [0];
-    match stream.read(&mut presence) {
-        Ok(_) => {}
-        Err(e) => {
-            error!("Can't receive presence: {}", e);
-            return false;
-        }
-    };
-    if presence[0] != 1 {
-        debug!("[{}] Presence check failed. Receive {} instead of 1",
-               addr,
-               presence[0]);
-        return false;
-    }
-    true
-}
-
 
 /// Handle multiple commands
 fn handle_multiple_commands(stream: &mut TcpStream, commands: Vec<WCommand>) -> Option<WCommand> {
@@ -164,7 +133,7 @@ fn handle_multiple_commands(stream: &mut TcpStream, commands: Vec<WCommand>) -> 
     if response >= 1 && response <= commands.len() {
         Some(commands[response - 1].clone())
     } else {
-        info!("Choose to exit");
+        info!("[{}] Choose to exit", stream.peer_addr().unwrap());
         debug!("response: {}", response);
         None
     }
@@ -187,24 +156,4 @@ fn send_command_response(stream: &mut TcpStream, commands: &[WCommand]) -> u8 {
             0
         }
     }
-}
-
-
-
-/// A process to confirm that the client use wydy.
-pub fn confirmation_process(stream: &mut TcpStream) -> bool {
-    let addr = stream.peer_addr().unwrap();
-    info!("[{}] Receiving confirmation...", addr);
-    let mut confirmation = [0; 4];
-    stream.read(&mut confirmation).unwrap();
-    let confirmation = confirmation.to_vec();
-    let confirmation = String::from_utf8(confirmation).unwrap();
-    if confirmation == "WYDY" {
-        info!("[{}] Confirmation received", addr);
-    } else {
-        error!("[{}] Wrong confirmation: {}", addr, confirmation);
-        return false;
-    }
-    stream.write(b"WYDY").unwrap();
-    true
 }

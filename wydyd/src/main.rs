@@ -8,12 +8,10 @@ fn main() {
     let app = App::new("wydyd")
         .author("notkild <notkild@gmail.com")
         .about("Wydy daemon to handle all wydy's command")
-        .arg(Arg::with_name("log")
-            .long("log")
-            .takes_value(true)
-            .value_name("LOG_LEVEL")
-            .help("Set the log level. Default is info (recommanded).\n1: Error, \
-                   2: Warn, 3: Info, 4: Debug, 5: Trace, else set it to off."))
+        .arg(Arg::with_name("debug")
+            .short("d")
+            .long("debug")
+            .help("Enable debug mode"))
         .arg(Arg::with_name("addr")
             .takes_value(true)
             .value_name("ADDRESS")
@@ -22,11 +20,7 @@ fn main() {
 
     let mut ip = "127.0.0.1";
     let mut port = 9654;
-    let mut log_level = 3;
-
-    if let Some(l) = app.value_of("log") {
-        log_level = l.parse::<u8>().unwrap_or(log_level);
-    }
+    let debug = app.is_present("debug");
 
     if let Some(a) = app.value_of("addr") {
         let mut split = a.split(':');
@@ -37,6 +31,6 @@ fn main() {
         };
     }
 
-    wydyd::init_logging(log_level);
+    wydyd::init_logging(debug);
     initialize_server((ip, port));
 }

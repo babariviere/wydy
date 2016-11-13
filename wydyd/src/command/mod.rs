@@ -178,9 +178,12 @@ fn search_engine_link(name: &str, search: &str) -> String {
         "duckduckgo" => format!("https://duckduckgo.com/?q={}", search),
         "google" => format!("https://google.com/#q={}", search),
         s => {
-            warn!("Unknown search engine {}, searching on duckduckgo by default.\nType \"edit \
-                    vars\" and change the value of \"search_engine\" to fix this problem.",
-                  s);
+            if !s.is_empty() {
+                warn!("Unknown search engine {}, searching on duckduckgo by default.\nType \
+                       \"edit vars\" and change the value of \"search_engine\" to fix this \
+                       problem.",
+                      s);
+            }
             format!("https://duckduckgo.com/?q={}", search)
         }
     }

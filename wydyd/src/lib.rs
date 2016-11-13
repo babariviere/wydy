@@ -12,6 +12,8 @@ extern crate verex;
 
 pub mod command;
 pub mod env;
+#[macro_use]
+pub mod error;
 pub mod parser;
 pub mod server;
 mod url_check;
@@ -26,19 +28,16 @@ const APP_INFO: AppInfo = AppInfo {
 };
 
 /// Init logging.
-pub fn init_logging(log_level: u8) {
+pub fn init_logging(debug: bool) {
     let dir = std::env::current_exe().unwrap().parent().unwrap().join(".wydyd.log");
     if dir.exists() {
         std::fs::remove_file(&dir).unwrap();
     }
 
-    let log_level = match log_level {
-        1 => LogLevelFilter::Error,
-        2 => LogLevelFilter::Warn,
-        3 => LogLevelFilter::Info,
-        4 => LogLevelFilter::Debug,
-        5 => LogLevelFilter::Trace,
-        _ => LogLevelFilter::Off,
+    let log_level = if debug {
+        LogLevelFilter::Debug
+    } else {
+        LogLevelFilter::Info
     };
 
     CombinedLogger::init(vec![
@@ -46,5 +45,5 @@ pub fn init_logging(log_level: u8) {
             WriteLogger::new(LogLevelFilter::Trace, Config::default(), File::create(dir).unwrap()),
         ])
         .unwrap();
-
+    debug!("Debug mode is enabled");
 }
