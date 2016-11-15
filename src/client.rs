@@ -37,7 +37,7 @@ pub fn send_presence(stream: &mut TcpStream) {
 }
 
 /// Send a command to the server
-pub fn send_command(stream: &mut TcpStream, command: String) {
+pub fn send_command(stream: &mut TcpStream, command: &str) {
     send_presence(stream);
     let command = format!("{}\n", command);
     match stream.write(command.as_bytes()) {
