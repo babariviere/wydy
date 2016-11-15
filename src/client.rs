@@ -2,6 +2,8 @@ use std::io;
 use std::io::{BufRead, Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 
+// TODO Clean this crappy code with Error code, etc..
+
 /// Make a connection with the server.
 pub fn connect_to_server<A: ToSocketAddrs>(addr: A) -> Result<TcpStream, String> {
     let mut stream = match TcpStream::connect(addr) {

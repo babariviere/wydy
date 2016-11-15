@@ -28,16 +28,6 @@ impl WLocation {
     }
 }
 
-// impl fmt::Display for WLocation {
-//    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-//        match *self {
-//            WLocation::Client => write!(fmt, "client"),
-//            WLocation::Server => write!(fmt, "server"),
-//            WLocation::Both => write!(fmt, "both"),
-//        }
-//    }
-// }
-
 /// Represent a wydy command
 /// command var is the command to execute, ej: vi src/command.rs
 /// desc var is the description, ej: edit file "src/command.rs"
