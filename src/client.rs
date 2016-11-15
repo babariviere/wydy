@@ -25,8 +25,8 @@ pub fn confirmation_process(stream: &mut TcpStream) -> bool {
     confirmation == "WYDY"
 }
 
-/// Send presence to continue communication with the server
-pub fn send_presence(stream: &mut TcpStream) {
+/// Do a presence check to continue communication with the server
+pub fn presence_check(stream: &mut TcpStream) {
     match stream.write(&[1]) {
         Ok(_) => {}
         Err(e) => {
@@ -34,11 +34,17 @@ pub fn send_presence(stream: &mut TcpStream) {
             ::std::process::exit(1);
         }
     };
+    let mut buf = [0];
+    stream.read(&mut buf).unwrap();
+    if buf[0] != 1 {
+        println!("Invalid presence response {}", buf[0]);
+        ::std::process::exit(1);
+    }
 }
 
 /// Send a command to the server
-pub fn send_command(stream: &mut TcpStream, command: &str) {
-    send_presence(stream);
+pub fn send_command(stream: &mut TcpStream, command: &str, locally: bool) {
+    presence_check(stream);
     let command = format!("{}\n", command);
     match stream.write(command.as_bytes()) {
         Ok(_) => {}
@@ -47,7 +53,18 @@ pub fn send_command(stream: &mut TcpStream, command: &str) {
             ::std::process::exit(1);
         }
     };
+    send_location_flag(stream, locally);
 }
+
+/// Send location flag
+pub fn send_location_flag(stream: &mut TcpStream, locally: bool) {
+    if locally {
+        stream.write(&[2]).unwrap();
+    } else {
+        stream.write(&[1]).unwrap();
+    }
+}
+
 
 /// Receive command response.
 /// Read response and make a choice based on it.
@@ -128,7 +145,7 @@ fn receive_commands(stream: &mut TcpStream) -> Vec<String> {
 fn receive_command_process(stream: &mut TcpStream) {
     let cmd_desc = receive_running_command_desc(stream);
     print!("{}", cmd_desc);
-    send_presence(stream);
+    presence_check(stream);
     let code = receive_status(stream);
     println!("Command executed with code {}", code);
 }

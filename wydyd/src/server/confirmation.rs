@@ -19,8 +19,8 @@ pub fn confirmation_process(stream: &mut TcpStream) -> Result<()> {
     Ok(())
 }
 
-/// Receive presence from a wydy user.
-pub fn receive_presence(stream: &mut TcpStream) -> Result<()> {
+/// Do a presence check from a wydy user.
+pub fn presence_check(stream: &mut TcpStream) -> Result<()> {
     let addr = stream.peer_addr().unwrap();
     let mut presence = [0];
     match stream.read(&mut presence) {
@@ -32,6 +32,12 @@ pub fn receive_presence(stream: &mut TcpStream) -> Result<()> {
     if presence[0] != 1 {
         debug!("Receive {} instead of 1", presence[0]);
         error_r!("[{}] Presence check failed.", addr);
+    }
+    match stream.write(&[1]) {
+        Ok(_) => {}
+        Err(e) => {
+            error_r!("[{}] Can't send presence flag: {}", addr, e);
+        }
     }
     Ok(())
 }

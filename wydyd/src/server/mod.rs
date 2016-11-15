@@ -78,25 +78,21 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) -> Result<()
         // TODO remove unwrap
         // Receive command
         let command = receive_command(&mut stream)?;
-        debug!("[{}] Raw command {}", addr, command);
+        let prefered_location = receive_location_flag(&mut stream);
         let commands = parse_user_command(command, &vars);
 
         // TODO add option to send output
         let action = send_command_response(&mut stream, &commands);
-        let mut command = WCommand::new("", "", WLocation::Null);
-        match action {
-            1 => {
-                command = commands[0].clone();
-            }
+        let command = match action {
+            1 => commands[0].clone(),
             2 => {
-                command = match handle_multiple_commands(&mut stream, commands) {
+                match handle_multiple_commands(&mut stream, commands) {
                     Some(c) => c,
                     None => break,
-                };
+                }
             }
-            0 => break,
-            _ => {}
-        }
+            _ => break,
+        };
         let send = format!("executing \"{}\"\n", command.command());
         stream.write(send.as_bytes()).unwrap();
         debug!("[{}] {}\n>>> {}", addr, command.desc(), command.command());
@@ -105,11 +101,11 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) -> Result<()
                addr,
                command.command(),
                code);
-        receive_presence(&mut stream)?;
+        presence_check(&mut stream)?;
         let send = format!("{}\n", code);
         stream.write(send.as_bytes()).unwrap();
-        info!("[{}] Client disconnected", addr);
-        return Ok(());
+        // Temp because see at the start of loop
+        break;
     }
 
     info!("[{}] Client disconnected", addr);

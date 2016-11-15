@@ -27,6 +27,6 @@ fn main() {
             return;
         }
     };
-    send_command(&mut server, command);
+    send_command(&mut server, command, locally);
     command_response(&mut server);
 }
