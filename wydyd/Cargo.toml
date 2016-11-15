@@ -11,4 +11,4 @@ simplelog = "*"
 verex = "*"
 
 [dependencies.parser_rs]
-path = "/home/notkild/projects/lib/parser_rs"
+git = "https://github.com/notkild/parser_rs"
