@@ -143,11 +143,20 @@ fn receive_commands(stream: &mut TcpStream) -> Vec<String> {
 
 /// Receive command process, description + status code
 fn receive_command_process(stream: &mut TcpStream) {
+    let location = receive_command_location(stream);
     let cmd_desc = receive_running_command_desc(stream);
     print!("{}", cmd_desc);
     presence_check(stream);
     let code = receive_status(stream);
     println!("Command executed with code {}", code);
+}
+
+fn receive_command_location(stream: &mut TcpStream) -> u8 {
+    presence_check(stream);
+    let mut buf = [0];
+    stream.read(&mut buf).unwrap();
+    println!("Command location {}", buf[0]);
+    buf[0]
 }
 
 /// Receive description of the running command

@@ -11,6 +11,7 @@ use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+/// Initialize server with address
 pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
     info!("Starting server...");
     let listener = match TcpListener::bind(addr) {
@@ -78,7 +79,7 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) -> Result<()
         // TODO remove unwrap
         // Receive command
         let command = receive_command(&mut stream)?;
-        let prefered_location = receive_location_flag(&mut stream);
+        let prefered_location = receive_location_flag(&mut stream)?;
         let commands = parse_user_command(command, &vars);
 
         // TODO add option to send output
@@ -93,6 +94,9 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) -> Result<()
             }
             _ => break,
         };
+        // Here with send the command if it's the client that are going to run it or on the server
+        let location = send_command_location(&mut stream, &command, &prefered_location)?;
+        debug!("[{}] Command location {:?}", addr, location);
         let send = format!("executing \"{}\"\n", command.command());
         stream.write(send.as_bytes()).unwrap();
         debug!("[{}] {}\n>>> {}", addr, command.desc(), command.command());
@@ -132,14 +136,15 @@ fn handle_multiple_commands(stream: &mut TcpStream, commands: Vec<WCommand>) -> 
     if response >= 1 && response <= commands.len() {
         Some(commands[response - 1].clone())
     } else {
-        info!("[{}] Choose to exit", stream.peer_addr().unwrap());
-        debug!("response: {}", response);
+        let addr = stream.peer_addr().unwrap();
+        info!("[{}] Choose to exit", addr);
+        debug!("[{}] Response: {}", addr, response);
         None
     }
 }
 
 /// Send response to the command that the server receive
-/// If the return value then
+/// Return the response value
 fn send_command_response(stream: &mut TcpStream, commands: &[WCommand]) -> u8 {
     match commands.len() {
         1 => {
@@ -153,6 +158,35 @@ fn send_command_response(stream: &mut TcpStream, commands: &[WCommand]) -> u8 {
         _ => {
             stream.write(&[u8::max_value()]).unwrap();
             0
+        }
+    }
+}
+
+/// Send the location where the command would be run.
+/// Return error if prefered location doesn't match command possible location.
+fn send_command_location(stream: &mut TcpStream,
+                         command: &WCommand,
+                         prefered_location: &WLocation)
+                         -> Result<WLocation> {
+    let addr = stream.peer_addr().unwrap();
+    presence_check(stream)?;
+    if !prefered_location.is_compatible(command.location()) {
+        stream.write(&[3]).unwrap();
+        error_r!("[{}] Command can't be run on client boxe.", addr);
+    }
+    if *prefered_location == WLocation::Client {
+        stream.write(&[1]).unwrap();
+        Ok(WLocation::Client)
+    } else {
+        match *command.location() {
+            WLocation::Server | WLocation::Both => {
+                stream.write(&[2]).unwrap();
+                Ok(WLocation::Server)
+            }
+            WLocation::Client => {
+                stream.write(&[1]).unwrap();
+                Ok(WLocation::Client)
+            }
         }
     }
 }

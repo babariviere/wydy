@@ -8,13 +8,35 @@ mod script;
 use self::script::*;
 
 /// Specify where the command can be run
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum WLocation {
-    Null = 0,
-    Server = 1,
-    Client = 2,
+    Client = 1,
+    Server = 2,
     Both = 3,
 }
+
+impl WLocation {
+    /// Check if location are compatible between two location.
+    pub fn is_compatible(&self, other: &WLocation) -> bool {
+        if self == other {
+            true
+        } else if *self == WLocation::Both || *other == WLocation::Both {
+            true
+        } else {
+            false
+        }
+    }
+}
+
+// impl fmt::Display for WLocation {
+//    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+//        match *self {
+//            WLocation::Client => write!(fmt, "client"),
+//            WLocation::Server => write!(fmt, "server"),
+//            WLocation::Both => write!(fmt, "both"),
+//        }
+//    }
+// }
 
 /// Represent a wydy command
 /// command var is the command to execute, ej: vi src/command.rs
@@ -42,6 +64,10 @@ impl WCommand {
 
     pub fn desc(&self) -> &str {
         &self.desc
+    }
+
+    pub fn location(&self) -> &WLocation {
+        &self.loc
     }
 
     /// Run the command
