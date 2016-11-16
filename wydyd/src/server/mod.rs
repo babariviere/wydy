@@ -6,7 +6,7 @@ use env::Vars;
 use error::Result;
 use self::confirmation::*;
 use self::io::*;
-use std::io::{Read, Write, stdin};
+use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -25,12 +25,7 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
             return;
         }
     };
-
-    // Handle input to close the server
-    thread::spawn(|| {
-        info!("Press \'q\' + <Return> to close the server");
-        handle_exit();
-    });
+    info!("Press <Ctrl+C> to close the server");
 
     let vars = Arc::new(Mutex::new(Vars::load()));
 
@@ -52,20 +47,6 @@ pub fn initialize_server<A: ToSocketAddrs>(addr: A) {
         }
     }
 
-}
-
-/// Handle user input to close server
-pub fn handle_exit() {
-    loop {
-        let mut stdin = stdin();
-        let mut recv = [0];
-        stdin.read(&mut recv).unwrap();
-        let recv = ::std::char::from_u32(recv[0] as u32).unwrap();
-        if recv == 'q' {
-            info!("Server is now closed");
-            ::std::process::exit(0);
-        }
-    }
 }
 
 /// Handle client and do stuff with him.

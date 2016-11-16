@@ -129,27 +129,46 @@ fn script_cmd(command_list: &mut Vec<WCommand>,
 /// Check if command is in path and add it to the command list.
 fn command_cmd(command_list: &mut Vec<WCommand>, parse_result: &WCPResult) {
     match *parse_result {
+        // TODO format
         (WKeyword::Run, ref s) |
         (WKeyword::None, ref s) => {
-            let mut command = match s.split_whitespace().next() {
+            let s = s.to_lowercase();
+            let mut splitted = s.split_whitespace();
+            if s.starts_with("run") {
+                splitted.next();
+            }
+            let mut command = match splitted.next() {
                 Some(c) => c.to_string(),
                 None => s.to_string(),
             };
-            if cfg!(target_os = "windows") {
+            if cfg!(target_os = "windows") && !command.ends_with(".exe") {
                 command.push_str(".exe");
             }
-            let path = env!("PATH");
-            let path_split = path.split(':');
+            let path_split = env!("PATH").split(':');
             let mut exists = false;
-            for p in path_split {
-                let command_path = Path::new(p).join(&command);
-                if command_path.exists() {
-                    exists = true;
+            'main: for p in path_split {
+                let p = Path::new(p);
+                if p.is_dir() {
+                    for c in p.read_dir().unwrap() {
+                        let c = c.unwrap();
+                        let rc = c.file_name().into_string().unwrap();
+                        let s = rc.to_lowercase();
+                        if s == command {
+                            command = rc;
+                            debug!("Found command {} here {}", command, c.path().display());
+                            exists = true;
+                            break 'main;
+                        }
+                    }
                 }
             }
             if exists {
+                let command =
+                    format!("{} {}",
+                            command,
+                            splitted.map(|x| format!("{} ", x)).collect::<String>().trim());
                 command_list.push(WCommand::new(s.to_string(),
-                                                format!("execute `{}`", s),
+                                                format!("execute `{}`", command),
                                                 WLocation::Both));
             }
         }
