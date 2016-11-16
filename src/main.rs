@@ -1,8 +1,11 @@
 extern crate clap;
 extern crate wydy;
+extern crate wydyd;
 
 use clap::{App, Arg};
 use wydy::client::*;
+use wydyd::init_logging;
+use wydyd::server::initialize_server;
 
 fn main() {
     let app = App::new("wydy")
@@ -12,12 +15,21 @@ fn main() {
             .takes_value(true)
             .multiple(true)
             .value_name("COMMAND")
-            .required(true)
+            .required_unless_one(&["start-server"])
             .help("Command to send to the server"))
         .arg(Arg::with_name("locally")
             .long("locally")
             .help("Ask the server to execute command locally"))
+        .arg(Arg::with_name("start-server")
+            .long("start-server")
+            .help("Start server instead of launching client"))
         .get_matches();
+
+    if app.is_present("start-server") {
+        init_logging(true);
+        initialize_server("127.0.0.1:9654");
+        return;
+    }
 
     let command = app.values_of("command").unwrap().map(|x| format!("{} ", x)).collect::<String>();
     let command = command.trim();
