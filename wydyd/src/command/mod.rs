@@ -131,15 +131,18 @@ fn command_cmd(command_list: &mut Vec<WCommand>, parse_result: &WCPResult) {
     match *parse_result {
         (WKeyword::Run, ref s) |
         (WKeyword::None, ref s) => {
-            let command = match s.split_whitespace().next() {
-                Some(c) => c,
-                None => s,
+            let mut command = match s.split_whitespace().next() {
+                Some(c) => c.to_string(),
+                None => s.to_string(),
             };
+            if cfg!(target_os = "windows") {
+                command.push_str(".exe");
+            }
             let path = env!("PATH");
             let path_split = path.split(':');
             let mut exists = false;
             for p in path_split {
-                let command_path = Path::new(p).join(command);
+                let command_path = Path::new(p).join(&command);
                 if command_path.exists() {
                     exists = true;
                 }

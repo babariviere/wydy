@@ -62,7 +62,8 @@ pub fn add_script(_command_list: &mut Vec<WCommand>, path: PathBuf) {
             return;
         }
     }
-    if cfg!(unix) {
+    #[cfg(unix)]
+    {
         let mut perms = fs::metadata(&path).unwrap().permissions();
         perms.set_mode(0o744);
         fs::set_permissions(&path, perms).unwrap();
