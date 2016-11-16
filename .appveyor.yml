@@ -20,7 +20,7 @@ install:
         $env:SDL2_LIB = "$SDL_PREFIX\lib"
 
     - ps: |
-        $SDL_TTF_VERSION = "2.0.1"
+        $SDL_TTF_VERSION = "2.0.14"
         $SDL_TTF_PREFIX = "C:\SDL\SDL2_ttf-$SDL_TTF_VERSION"
         if (!(Test-Path -Path $SDL_TTF_PREFIX)) {
             Start-FileDownload https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-$SDL_TTF_VERSION-VC.zip
@@ -40,11 +40,11 @@ install:
         $env:SDL2_LIB_M = "$SDL_PREFIX_M\lib"
 
     - ps: |
-        $SDL_TTF_VERSION_M = "2.0.1"
+        $SDL_TTF_VERSION_M = "2.0.14"
         $SDL_TTF_PREFIX_M = "C:\SDL\SDL2M_ttf-$SDL_TTF_VERSION"
         if (!(Test-Path -Path $SDL_TTF_PREFIX_M)) {
             Start-FileDownload https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-$SDL_TTF_VERSION_M-mingw.tar.gz
-            7z x SDL2_ttf-devel-$SDL_TTF_VERSION_M-mingw..tar.gz -oC:\SDL\
+            7z x SDL2_ttf-devel-$SDL_TTF_VERSION_M-mingw.tar.gz -oC:\SDL\
         }
         $env:SDL2_TTF_INCLUDE_M = "$SDL_TTF_PREFIX_M\include"
         $env:SDL2_TTF_LIB_M = "$SDL_TTF_PREFIX_M\lib"
