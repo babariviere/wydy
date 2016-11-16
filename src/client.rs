@@ -1,6 +1,7 @@
 use std::io;
 use std::io::{BufRead, Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
+use wydyd::command::{WCommand, WLocation};
 
 // TODO Clean this crappy code with Error code, etc..
 
@@ -146,10 +147,25 @@ fn receive_commands(stream: &mut TcpStream) -> Vec<String> {
 /// Receive command process, description + status code
 fn receive_command_process(stream: &mut TcpStream) {
     let location = receive_command_location(stream);
-    let cmd_desc = receive_running_command_desc(stream);
-    print!("{}", cmd_desc);
-    presence_check(stream);
-    let code = receive_status(stream);
+    let code = match location {
+        1 => {
+            let mut reader = io::BufReader::new(stream);
+            let mut command = String::new();
+            reader.read_line(&mut command).unwrap();
+            let mut desc = String::new();
+            reader.read_line(&mut desc).unwrap();
+            println!("{}", desc);
+            let command = WCommand::new(command, desc, WLocation::Client);
+            command.run()
+        }
+        2 => {
+            let cmd_desc = receive_running_command_desc(stream);
+            print!("{}", cmd_desc);
+            presence_check(stream);
+            receive_status(stream)
+        }
+        _ => -1,
+    };
     println!("Command executed with code {}", code);
 }
 
@@ -170,7 +186,7 @@ fn receive_running_command_desc(stream: &mut TcpStream) -> String {
 }
 
 /// Receive the status code of the running command
-fn receive_status(stream: &mut TcpStream) -> i64 {
+fn receive_status(stream: &mut TcpStream) -> i32 {
     let mut reader = io::BufReader::new(stream);
     let mut status = String::new();
     reader.read_line(&mut status).unwrap();

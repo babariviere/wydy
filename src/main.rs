@@ -10,6 +10,7 @@ fn main() {
         .about("Wydy client to send command to wydyd server")
         .arg(Arg::with_name("command")
             .takes_value(true)
+            .multiple(true)
             .value_name("COMMAND")
             .required(true)
             .help("Command to send to the server"))
@@ -18,7 +19,8 @@ fn main() {
             .help("Ask the server to execute command locally"))
         .get_matches();
 
-    let command = app.value_of("command").unwrap();
+    let command = app.values_of("command").unwrap().map(|x| format!("{} ", x)).collect::<String>();
+    let command = command.trim();
     let locally = app.is_present("locally");
     let mut server = match connect_to_server("127.0.0.1:9654") {
         Ok(s) => s,

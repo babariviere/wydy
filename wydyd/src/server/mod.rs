@@ -97,18 +97,27 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) -> Result<()
         // Here with send the command if it's the client that are going to run it or on the server
         let location = send_command_location(&mut stream, &command, &prefered_location)?;
         debug!("[{}] Command location {:?}", addr, location);
-        let send = format!("executing \"{}\"\n", command.command());
-        stream.write(send.as_bytes()).unwrap();
-        debug!("[{}] {}\n>>> {}", addr, command.desc(), command.command());
-        let code = command.run();
-        debug!("[{}] command `{}` exited with error code {}",
-               addr,
-               command.command(),
-               code);
-        presence_check(&mut stream)?;
-        let send = format!("{}\n", code);
-        stream.write(send.as_bytes()).unwrap();
-        // Temp because see at the start of loop
+        match location {
+            WLocation::Client => {
+                let send = format!("{}\n{}\n", command.command(), command.desc());
+                stream.write(send.as_bytes()).unwrap();
+            }
+            WLocation::Server => {
+                let send = format!("executing \"{}\"\n", command.command());
+                stream.write(send.as_bytes()).unwrap();
+                debug!("[{}] {}\n>>> {}", addr, command.desc(), command.command());
+                let code = command.run();
+                debug!("[{}] command `{}` exited with error code {}",
+                       addr,
+                       command.command(),
+                       code);
+                presence_check(&mut stream)?;
+                let send = format!("{}\n", code);
+                stream.write(send.as_bytes()).unwrap();
+                // Temp because see at the start of loop
+            }
+            _ => break,
+        }
         break;
     }
 

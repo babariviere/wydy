@@ -12,7 +12,7 @@ It is a personnal project to speed up my productivity.
 - [x] Web Search
 - [x] Open url
 - [x] Execute command
-- [ ] Execute command locally
+- [x] Execute command locally
 - [ ] Find files and open them
 - [x] Scripts handler
 - [x] Vars support

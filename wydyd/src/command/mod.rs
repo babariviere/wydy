@@ -67,8 +67,8 @@ impl WCommand {
         let command_args = command_split.collect::<Vec<&str>>();
         let mut command = Command::new(command_str);
         command.args(command_args.as_slice());
-        let output = command.output().unwrap();
-        output.status.code().unwrap_or(0)
+        let mut child = command.spawn().unwrap();
+        child.wait().unwrap().code().unwrap_or(0)
     }
 }
 
