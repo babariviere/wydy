@@ -41,6 +41,18 @@ fn main() {
             return;
         }
     };
-    send_command(&mut server, command, locally);
-    command_response(&mut server);
+    match send_command(&mut server, command, locally) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("{}", e);
+            return;
+        }
+    };
+    match command_response(&mut server) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("{}", e);
+            return;
+        }
+    };
 }
