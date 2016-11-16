@@ -6,6 +6,9 @@ environment:
         - TARGET: i686-pc-windows-gnu
 
 install:
+    - ps: (new-object System.Net.WebClient).Downloadfile("http://www.7-zip.org/a/7z1514-x64.exe", "C:\projects\7zip_installer.exe")
+    - C:\projects\7zip_installer.exe /S /D=C:\projects\7zip_tool
+    - set PATH=c:\projects\7zip_tool;%PATH%
     - ps: |
         $SDL_VERSION = "2.0.5"
         $SDL_PREFIX = "C:\SDL\SDL2-$SDL_VERSION"
