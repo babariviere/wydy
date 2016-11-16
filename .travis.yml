@@ -8,6 +8,9 @@ os:
     - linux
     - osx
 
+before_install:
+    - ./.travis/before_install.sh
+
 script:
     - cargo build --verbose
     - cargo build --verbose --manifest-path wydyd/Cargo.toml
