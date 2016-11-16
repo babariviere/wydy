@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["notkild <notkild@gmail.com>"]
 
 [dependencies]
-clap = "*"
+clap = "2.18"
 
 [dependencies.wydyd]
 path = "wydyd"

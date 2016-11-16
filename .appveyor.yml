@@ -24,7 +24,7 @@ install:
         $SDL_TTF_PREFIX = "C:\SDL\SDL2_ttf-$SDL_TTF_VERSION"
         if (!(Test-Path -Path $SDL_TTF_PREFIX)) {
             Start-FileDownload https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-$SDL_TTF_VERSION-VC.zip
-            7z x SDL2_mixer-devel-$SDL_TTF_VERSION-VC.zip -oC:\SDL\
+            7z x SDL2_ttf-devel-$SDL_TTF_VERSION-VC.zip -oC:\SDL\
         }
         $env:SDL2_TTF_INCLUDE = "$SDL_TTF_PREFIX\include"
         $env:SDL2_TTF_LIB = "$SDL_TTF_PREFIX\lib"
@@ -33,8 +33,8 @@ install:
         $SDL_VERSION_M = "2.0.5"
         $SDL_PREFIX_M = "C:\SDL\SDL2M-$SDL_VERSION"
         if (!(Test-Path -Path $SDL_PREFIX_M)) {
-            Start-FileDownload https://libsdl.org/release/SDL2-devel-$SDL_VERSION_M-mingw.zip
-            7z x SDL2-devel-$SDL_VERSION_M-mingw.zip -oC:\SDL\
+            Start-FileDownload https://libsdl.org/release/SDL2-devel-$SDL_VERSION_M-mingw.tar.gz
+            7z x SDL2-devel-$SDL_VERSION_M-mingw.tar.gz -oC:\SDL\
         }
         $env:SDL2_INCLUDE_M = "$SDL_PREFIX_M\include"
         $env:SDL2_LIB_M = "$SDL_PREFIX_M\lib"
@@ -43,8 +43,8 @@ install:
         $SDL_TTF_VERSION_M = "2.0.1"
         $SDL_TTF_PREFIX_M = "C:\SDL\SDL2M_ttf-$SDL_TTF_VERSION"
         if (!(Test-Path -Path $SDL_TTF_PREFIX_M)) {
-            Start-FileDownload https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-$SDL_TTF_VERSION_M-mingw.zip
-            7z x SDL2_mixer-devel-$SDL_MIXER_VERSION_M-mingw.zip -oC:\SDL\
+            Start-FileDownload https://www.libsdl.org/projects/SDL_ttf/release/SDL2_ttf-devel-$SDL_TTF_VERSION_M-mingw.tar.gz
+            7z x SDL2_ttf-devel-$SDL_TTF_VERSION_M-mingw..tar.gz -oC:\SDL\
         }
         $env:SDL2_TTF_INCLUDE_M = "$SDL_TTF_PREFIX_M\include"
         $env:SDL2_TTF_LIB_M = "$SDL_TTF_PREFIX_M\lib"
