@@ -4,11 +4,11 @@ version = "0.1.0"
 authors = ["notkild <notkild@gmail.com>"]
 
 [dependencies]
-app_dirs = "*"
-clap = "*"
-log = "*"
-simplelog = "*"
-verex = "*"
+app_dirs = "1.1"
+clap = "2.18"
+log = "0.3"
+simplelog = "0.4"
+verex = "0.2"
 
 [dependencies.parser_rs]
 git = "https://github.com/notkild/parser_rs"
