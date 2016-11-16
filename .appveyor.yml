@@ -61,3 +61,4 @@ build: false
 test_script:
     - cargo test --verbose
     - cargo test --manifest-path wydyd/Cargo.toml --verbose
+    - cargo test --manifest-path wydy-sdl2/Cargo.toml --verbose

@@ -14,7 +14,6 @@ before_install:
     - ./.travis/before_install.sh
 
 script:
-    - cargo build --verbose
-    - cargo build --verbose --manifest-path wydyd/Cargo.toml
     - cargo test --verbose
     - cargo test --verbose --manifest-path wydyd/Cargo.toml 
+    - cargo test --verbose --manifest-path wydy-sdl2/Cargo.toml
