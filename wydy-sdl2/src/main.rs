@@ -11,21 +11,17 @@ fn main() {
 
     let mut window = video.window("Wydy Client", 800, 600)
         .borderless()
-        .fullscreen_desktop()
+//        .fullscreen_desktop()
         .opengl()
         .build()
         .unwrap();
 
 
     let mut event_pump = context.event_pump().unwrap();
-    {
-        let mut surface = window.surface_mut(&event_pump).unwrap();
-        surface.set_alpha_mod(0);
-    }
     let mut renderer = window.renderer().build().unwrap();
 
     'running: loop {
-        renderer.set_draw_color(Color::RGBA(100, 100, 100, 0));
+        renderer.set_draw_color(Color::RGBA(0, 0, 0, 0));
         renderer.clear();
         renderer.present();
 
