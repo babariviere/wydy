@@ -16,4 +16,4 @@ before_install:
 script:
     - cargo test --verbose
     - cargo test --verbose --manifest-path wydyd/Cargo.toml 
-    - cargo test --verbose --manifest-path wydy-sdl2/Cargo.toml
+    - cargo test --verbose --manifest-path wydy-ui/Cargo.toml

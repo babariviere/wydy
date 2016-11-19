@@ -60,6 +60,9 @@ pub fn handle_client(mut stream: TcpStream, vars: Arc<Mutex<Vars>>) -> Result<()
         // TODO remove unwrap
         // Receive command
         let command = receive_command(&mut stream)?;
+        if command == "cancel" {
+            break;
+        }
         let prefered_location = receive_location_flag(&mut stream)?;
         let commands = parse_user_command(command, &vars);
 

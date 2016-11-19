@@ -1,8 +1,11 @@
 [package]
-name = "wydy-sdl2"
+name = "wydy-ui"
 version = "0.1.0"
 authors = ["notkild <notkild@gmail.com>"]
 
 [dependencies]
 sdl2 = "0.25"
 sdl2_ttf = "0.25"
+
+[dependencies.wydy]
+path = ".."
